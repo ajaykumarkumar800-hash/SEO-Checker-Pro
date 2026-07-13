@@ -9,6 +9,20 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from flask import Flask, render_template, request, jsonify
 from seo_analyzer import SEOAnalyzer
+from pymongo import MongoClient
+
+# Initialize MongoClient utilising MONGODB_URI environment variable
+mongo_uri = os.environ.get("MONGODB_URI")
+client = None
+reports_collection = None
+if mongo_uri:
+    try:
+        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=2000)
+        # Map database named 'seo_checker_pro' and collection named 'audit_reports'
+        db = client["seo_checker_pro"]
+        reports_collection = db["audit_reports"]
+    except Exception as e:
+        sys.stderr.write(f"MongoDB connection initialization failed: {str(e)}\n")
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 
@@ -49,6 +63,34 @@ def analyze():
     try:
         analyzer = SEOAnalyzer(url, focus_keyword=keyword, website_category=category)
         report = analyzer.analyze()
+        
+        # Serialize and forcefully trigger a database insert if MongoDB is active
+        global reports_collection
+        if reports_collection is None:
+            local_uri = os.environ.get("MONGODB_URI")
+            if local_uri:
+                try:
+                    local_client = MongoClient(local_uri, serverSelectionTimeoutMS=2000)
+                    local_db = local_client["seo_checker_pro"]
+                    reports_collection = local_db["audit_reports"]
+                except Exception:
+                    pass
+
+        if reports_collection is not None:
+            try:
+                import datetime
+                report_data_dictionary = {
+                    "url": report.get("url"),
+                    "final_url": report.get("final_url"),
+                    "overall_score": report.get("overall_score"),
+                    "grade": report.get("grade"),
+                    "timestamp": datetime.datetime.utcnow(),
+                    "category_scores": report.get("category_scores")
+                }
+                reports_collection.insert_one(report_data_dictionary)
+            except Exception as db_err:
+                sys.stderr.write(f"MongoDB report insertion failed: {str(db_err)}\n")
+
         return jsonify(report)
     except Exception as e:
         return jsonify({"success": False, "error": f"Analysis error: {str(e)}"}), 500
