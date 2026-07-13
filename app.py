@@ -11,11 +11,11 @@ from pymongo import MongoClient
 # Initialize MongoClient utilising MONGODB_URI environment variable
 mongo_uri = os.environ.get("MONGODB_URI")
 client = None
+db = None
 reports_collection = None
 if mongo_uri:
     try:
-        client = MongoClient(mongo_uri, serverSelectionTimeoutMS=2000)
-        # Map database named 'seo_checker_pro' and collection named 'audit_reports'
+        client = MongoClient(mongo_uri)
         db = client["seo_checker_pro"]
         reports_collection = db["audit_reports"]
     except Exception as e:
@@ -62,14 +62,14 @@ def analyze():
         report = analyzer.analyze()
         
         # Serialize and forcefully trigger a database insert if MongoDB is active
-        global reports_collection
+        global client, db, reports_collection
         if reports_collection is None:
             local_uri = os.environ.get("MONGODB_URI")
             if local_uri:
                 try:
-                    local_client = MongoClient(local_uri, serverSelectionTimeoutMS=2000)
-                    local_db = local_client["seo_checker_pro"]
-                    reports_collection = local_db["audit_reports"]
+                    client = MongoClient(local_uri)
+                    db = client["seo_checker_pro"]
+                    reports_collection = db["audit_reports"]
                 except Exception:
                     pass
 
