@@ -824,8 +824,8 @@ function drawRadarChart(scores) {
     if (!canvas.listenersAttached) {
         canvas.addEventListener("click", (event) => {
             const rect = canvas.getBoundingClientRect();
-            const mx = event.clientX - rect.left;
-            const my = event.clientY - rect.top;
+            const mx = (event.clientX - rect.left) * (w / rect.width);
+            const my = (event.clientY - rect.top) * (h / rect.height);
             if (canvas.hotspots) {
                 for (const spot of canvas.hotspots) {
                     const dx = mx - spot.x;
@@ -842,8 +842,8 @@ function drawRadarChart(scores) {
 
         canvas.addEventListener("mousemove", (event) => {
             const rect = canvas.getBoundingClientRect();
-            const mx = event.clientX - rect.left;
-            const my = event.clientY - rect.top;
+            const mx = (event.clientX - rect.left) * (w / rect.width);
+            const my = (event.clientY - rect.top) * (h / rect.height);
             let hover = false;
             if (canvas.hotspots) {
                 for (const spot of canvas.hotspots) {
