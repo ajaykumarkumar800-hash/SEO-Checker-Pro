@@ -1054,6 +1054,7 @@ body {
     display: flex;
     align-items: center;
     gap: 20px;
+    flex-wrap: wrap;
 }
 
 .psi-gauge {
@@ -1078,32 +1079,65 @@ body {
 }
 
 .psi-metrics {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
     flex-grow: 1;
 }
 
 .psi-metric {
+    background: rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: 8px;
+    padding: 8px 10px;
     display: flex;
-    justify-content: space-between;
-    font-size: 0.8rem;
-    border-left: 3px solid #ddd;
-    padding-left: 8px;
+    flex-direction: column;
+    gap: 4px;
+    border-left: 3.5px solid #ddd;
+    transition: all 0.2s ease;
+}
+
+.psi-metric:hover {
+    background: rgba(0, 0, 0, 0.035);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.psi-metric-header {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.psi-metric-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
 }
 
 .psi-metric-label {
-    color: var(--text-muted);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .psi-metric-value {
+    font-size: 1.05rem;
     font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.2;
 }
 
-.psi-good { border-color: #0cce6b; }
-.psi-mid { border-color: #ffa400; }
-.psi-bad { border-color: #ff4e42; }
+.psi-good { border-left-color: #0cce6b; }
+.psi-mid { border-left-color: #ffa400; }
+.psi-bad { border-left-color: #ff4e42; }
+
+.psi-good .psi-metric-dot { background-color: #0cce6b; }
+.psi-mid .psi-metric-dot { background-color: #ffa400; }
+.psi-bad .psi-metric-dot { background-color: #ff4e42; }
 
 /* ══════════════════════════════════════
    COMPETITOR COMPARE SECTION

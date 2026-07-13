@@ -997,7 +997,15 @@ function togglePageSpeedStrategy(strategy) {
         metricsHtml = '<div class="psi-metrics">';
         for (const [label, m] of Object.entries(d.metrics)) {
             const mc = m.score >= 90 ? "psi-good" : (m.score >= 50 ? "psi-mid" : "psi-bad");
-            metricsHtml += `<div class="psi-metric ${mc}"><span class="psi-metric-label">${label}</span><span class="psi-metric-value">${m.value}</span></div>`;
+            metricsHtml += `
+                <div class="psi-metric ${mc}">
+                    <div class="psi-metric-header">
+                        <span class="psi-metric-dot"></span>
+                        <span class="psi-metric-label">${label}</span>
+                    </div>
+                    <div class="psi-metric-value">${m.value}</div>
+                </div>
+            `;
         }
         metricsHtml += '</div>';
     }
