@@ -70,8 +70,10 @@ def analyze():
                     client = MongoClient(local_uri)
                     db = client["seo_checker_pro"]
                     reports_collection = db["audit_reports"]
-                except Exception:
-                    pass
+                except Exception as conn_err:
+                    sys.stderr.write(f"MongoDB connection initialization failed: {str(conn_err)}\n")
+            else:
+                sys.stderr.write("MongoDB connection skipped: MONGODB_URI environment variable is missing or empty.\n")
 
         if reports_collection is not None:
             try:
@@ -87,6 +89,8 @@ def analyze():
                 reports_collection.insert_one(report_data_dictionary)
             except Exception as db_err:
                 sys.stderr.write(f"MongoDB report insertion failed: {str(db_err)}\n")
+        else:
+            sys.stderr.write("MongoDB insertion skipped: reports_collection is not initialized.\n")
 
         return jsonify(report)
     except Exception as e:

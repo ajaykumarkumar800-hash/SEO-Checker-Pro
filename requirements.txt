@@ -4,4 +4,6 @@ beautifulsoup4==4.13.4
 lxml==5.4.0
 brotli==1.1.0
 pymongo
+dnspython
+
 
