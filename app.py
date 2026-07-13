@@ -8,6 +8,13 @@ from flask import Flask, render_template, request, jsonify
 from seo_analyzer import SEOAnalyzer
 from pymongo import MongoClient
 
+def safe_log(msg):
+    try:
+        sys.stderr.write(msg + "\n")
+        sys.stderr.flush()
+    except Exception:
+        pass
+
 # Initialize MongoClient utilising MONGODB_URI environment variable
 mongo_uri = os.environ.get("MONGODB_URI")
 client = None
@@ -19,7 +26,7 @@ if mongo_uri:
         db = client["seo_checker_pro"]
         reports_collection = db["audit_reports"]
     except Exception as e:
-        sys.stderr.write(f"MongoDB connection initialization failed: {str(e)}\n")
+        safe_log(f"MongoDB connection initialization failed: {str(e)}")
 
 app = Flask(__name__)
 
@@ -71,9 +78,9 @@ def analyze():
                     db = client["seo_checker_pro"]
                     reports_collection = db["audit_reports"]
                 except Exception as conn_err:
-                    sys.stderr.write(f"MongoDB connection initialization failed: {str(conn_err)}\n")
+                    safe_log(f"MongoDB connection initialization failed: {str(conn_err)}")
             else:
-                sys.stderr.write("MongoDB connection skipped: MONGODB_URI environment variable is missing or empty.\n")
+                safe_log("MongoDB connection skipped: MONGODB_URI environment variable is missing or empty.")
 
         if reports_collection is not None:
             try:
@@ -88,9 +95,9 @@ def analyze():
                 }
                 reports_collection.insert_one(report_data_dictionary)
             except Exception as db_err:
-                sys.stderr.write(f"MongoDB report insertion failed: {str(db_err)}\n")
+                safe_log(f"MongoDB report insertion failed: {str(db_err)}")
         else:
-            sys.stderr.write("MongoDB insertion skipped: reports_collection is not initialized.\n")
+            safe_log("MongoDB insertion skipped: reports_collection is not initialized.")
 
         return jsonify(report)
     except Exception as e:
