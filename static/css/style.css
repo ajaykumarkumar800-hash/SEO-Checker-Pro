@@ -352,14 +352,15 @@ body {
     background: var(--bg-glass); border-radius: var(--radius-sm);
     margin-bottom: 5px; border-left: 3px solid transparent;
     font-size: 0.82rem; line-height: 1.5;
-    word-wrap: break-word;
-    word-break: break-word;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
 }
 .rec-item.critical { border-left-color: var(--red); }
 .rec-item.warning { border-left-color: var(--amber); }
 .rec-item.info { border-left-color: var(--blue); }
 .rec-check-name { font-weight: 600; color: var(--text-primary); margin-right: 6px; }
-.rec-message { color: var(--text-secondary); }
+.rec-message { color: var(--text-secondary); white-space: normal !important; word-wrap: break-word !important; word-break: break-word !important; }
 
 /* ── TABS ── */
 .tabs-wrapper { margin-bottom: 20px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -446,6 +447,9 @@ body {
     padding: 10px 14px; background: var(--gradient-glow);
     border-radius: var(--radius-sm); border-left: 3px solid var(--accent-1);
     font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.6;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
 }
 .check-recommendation strong { color: var(--text-primary); }
 .detail-grid {
