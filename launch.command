@@ -14,7 +14,7 @@ pip3 install -r requirements.txt
 echo ""
 echo "2. Launching Local Web Server..."
 # Wait 1.5 seconds for the server to start, then open Chrome/Safari automatically
-(sleep 1.5 && open "http://127.0.0.1:5000") &
+(sleep 1.5 && open "http://127.0.0.1:5002") &
 
 echo "3. Server started! Press CTRL+C in this terminal window to stop."
 echo ""
