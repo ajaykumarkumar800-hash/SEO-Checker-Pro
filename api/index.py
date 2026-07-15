@@ -240,11 +240,13 @@ def analyze():
         
         # Force strict integer casting for accessibility.tables_missing_headers and content_quality.content_formatting.tables
         tables_missing = 0
+        total_iframes_val = 0
         if "checks" in report and "accessibility" in report["checks"]:
             for check in report["checks"]["accessibility"]:
                 if check.get("name") == "Accessible Tables Check":
                     tables_missing = check.get("details", {}).get("tables_missing_headers", 0)
-                    break
+                elif check.get("name") == "Accessible Frame Title":
+                    total_iframes_val = check.get("details", {}).get("total_iframes", 0)
         
         content_tables = 0
         if "checks" in report and "content" in report["checks"]:
@@ -255,13 +257,25 @@ def analyze():
 
         if 'accessibility' not in report:
             report['accessibility'] = {}
-        report['accessibility']['tables_missing_headers'] = int(report['accessibility'].get('tables_missing_headers', tables_missing))
-        
+        if 'tables_missing_headers' not in report['accessibility']:
+            report['accessibility']['tables_missing_headers'] = tables_missing
+        if 'total_iframes' not in report['accessibility']:
+            report['accessibility']['total_iframes'] = total_iframes_val
+
+        # Force convert these missing sub-keys into strict integer zeros
+        if 'accessibility' in report:
+            report['accessibility']['tables_missing_headers'] = 0 if str(report['accessibility'].get('tables_missing_headers')).strip() in ['O', 'o', ''] else int(report['accessibility'].get('tables_missing_headers', 0))
+            report['accessibility']['total_iframes'] = 0 if str(report['accessibility'].get('total_iframes')).strip() in ['O', 'o', ''] else int(report['accessibility'].get('total_iframes', 0))
+
         if 'content_quality' not in report:
             report['content_quality'] = {}
         if 'content_formatting' not in report['content_quality']:
             report['content_quality']['content_formatting'] = {}
-        report['content_quality']['content_formatting']['tables'] = int(report['content_quality']['content_formatting'].get('tables', content_tables))
+        if 'tables' not in report['content_quality']['content_formatting']:
+            report['content_quality']['content_formatting']['tables'] = content_tables
+
+        if 'content_quality' in report and 'content_formatting' in report['content_quality']:
+            report['content_quality']['content_formatting']['tables'] = 0 if str(report['content_quality']['content_formatting'].get('tables')).strip() in ['O', 'o', ''] else int(report['content_quality']['content_formatting'].get('tables', 0))
         
         # Ensure the recommendation description string length limit is completely disabled/extended
         if "checks" in report and "performance" in report["checks"]:

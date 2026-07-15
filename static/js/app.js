@@ -362,7 +362,7 @@ function buildPrintReport(data) {
                                 <span class="print-check-status-label ${check.status || 'info'}">${check.status || 'info'}</span>
                             </div>
                             <div class="print-check-msg">${check.message || ''}</div>
-                            ${check.recommendation ? `<div class="print-check-rec"><strong>Recommendation:</strong> ${check.recommendation}</div>` : ""}
+                            ${check.recommendation ? `<div class="print-check-rec"><p style="white-space: normal !important; word-break: break-word !important; overflow: visible !important; display: block !important; height: auto !important; margin: 0; padding: 0;"><strong>Recommendation:</strong> ${check.recommendation}</p></div>` : ""}
                             ${detailsHtml}
                         </div>
                     `;
@@ -596,7 +596,7 @@ function createCheckCard(check) {
     let details = "";
 
     if (check.recommendation) {
-        details += `<div class="check-recommendation"><strong>Recommendation:</strong> ${esc(check.recommendation)}</div>`;
+        details += `<div class="check-recommendation"><p style="white-space: normal !important; word-break: break-word !important; overflow: visible !important; display: block !important; height: auto !important; margin: 0; padding: 0;"><strong>Recommendation:</strong> ${esc(check.recommendation)}</p></div>`;
     }
     if (check.details && Object.keys(check.details).length > 0) {
         details += '<div class="detail-grid">';
