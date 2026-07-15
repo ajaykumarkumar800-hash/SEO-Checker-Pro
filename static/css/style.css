@@ -710,25 +710,20 @@ body {
     }
 
     /* Antigravity System Instruction: Enforce complete print media document layout safety */
-    /* Prevent containers from restricting element heights dynamically */
-    .card, .widget-box, .section-block, blockquote, p, div {
+    /* Target the container wrapping your specific failure descriptions */
+    .failed-card, .fail-status-container, td, div {
         max-height: none !important;
-        overflow: visible !important;
         height: auto !important;
+        overflow: visible !important;
     }
-
-    /* Force recommendation text nodes to automatically break and wrap across columns */
-    .recommendation-text, p[class*="recommendation"], td, span {
+    
+    /* Force the specific recommendation text nodes to flow naturally */
+    .recommendation-text, p, span {
         white-space: normal !important;
         word-wrap: break-word !important;
         word-break: break-word !important;
-        display: block !important;
-    }
-
-    /* Prevent page break splitting bugs directly inside individual error elements */
-    .failed-card, .fail-status-container {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
+        display: inline-block !important;
+        line-height: 1.4 !important;
     }
 }
 
