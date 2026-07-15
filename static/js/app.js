@@ -362,7 +362,7 @@ function buildPrintReport(data) {
                                 <span class="print-check-status-label ${check.status || 'info'}">${check.status || 'info'}</span>
                             </div>
                             <div class="print-check-msg">${check.message || ''}</div>
-                            ${check.recommendation ? `<div class="print-check-rec"><p style="white-space: normal !important; word-break: break-word !important; overflow: visible !important; display: block !important; height: auto !important; margin: 0; padding: 0;"><strong>Recommendation:</strong> ${check.recommendation}</p></div>` : ""}
+                            ${check.recommendation ? `<div class="print-check-rec"><p style="white-space: normal !important; word-break: break-word !important; overflow: visible !important; display: block !important; height: auto !important; margin: 0; padding: 0;"><strong>Recommendation:</strong> ${esc(check.recommendation)}</p></div>` : ""}
                             ${detailsHtml}
                         </div>
                     `;

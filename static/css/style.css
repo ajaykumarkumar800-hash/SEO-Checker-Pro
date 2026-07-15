@@ -621,6 +621,7 @@ body {
         break-inside: avoid !important;
         overflow: visible !important;
         max-height: none !important;
+        height: auto !important;
     }
     .print-check-card.pass { border-left: 4px solid #10b981; }
     .print-check-card.warning { border-left: 4px solid #f59e0b; }
@@ -661,6 +662,7 @@ body {
         word-break: break-word !important;
         overflow: visible !important;
         max-height: none !important;
+        height: auto !important;
     }
     .print-check-rec {
         background: #f8fafc;
