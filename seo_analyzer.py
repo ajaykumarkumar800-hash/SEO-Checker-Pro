@@ -3429,7 +3429,7 @@ class SEOAnalyzer:
                 missing.append(t.get("class", ["(no class)"])[0])
                 
         d = {"total_tables": len(tables), "tables_missing_headers": len(missing)}
-        if total_tables := len(tables) == 0:
+        if len(tables) == 0:
             self.checks.append(SEOCheck("Accessible Tables Check", "accessibility", "pass", 5, 5,
                 "No data tables found on the page.", details=d))
         elif not missing:
@@ -3718,11 +3718,15 @@ class SEOAnalyzer:
         self._check_utm_params()
 
     def _get_all_links(self):
-        links = self.soup.find_all("a", href=True)
+        if hasattr(self, "_cached_links"):
+            return self._cached_links
+
+        links = self.soup.find_all("a")
         internal = []
         external = []
+        placeholders = []
         for link in links:
-            href = link["href"]
+            href = link.get("href", "").strip()
             text = link.get_text(strip=True)[:80]
             # Fallback: if text is empty, check for img alt inside the <a>
             if not text:
@@ -3735,19 +3739,24 @@ class SEOAnalyzer:
                     if aria:
                         text = aria[:80]
             is_nofollow = "nofollow" in (link.get("rel") or [])
-            if href.startswith(("mailto:", "tel:", "javascript:", "#")):
+            if href.startswith(("mailto:", "tel:")):
                 continue
-            if href.startswith("/") or href.startswith(self.base_url):
+            if not href or href == "#" or href.startswith("javascript:"):
+                placeholders.append({"href": href, "text": text, "nofollow": is_nofollow})
+            elif href.startswith("/") or href.startswith(self.base_url):
                 internal.append({"href": href, "text": text, "nofollow": is_nofollow})
             elif href.startswith("http"):
                 external.append({"href": href, "text": text, "nofollow": is_nofollow})
-        return internal, external
+            else:
+                internal.append({"href": href, "text": text, "nofollow": is_nofollow})
+        self._cached_links = (internal, external, placeholders)
+        return self._cached_links
 
     def _check_link_count_summary(self):
-        internal, external = self._get_all_links()
-        total = len(internal) + len(external)
+        internal, external, placeholders = self._get_all_links()
+        total = len(internal) + len(external) + len(placeholders)
         d = {"total_links": total, "internal": len(internal), "external": len(external),
-             "ratio": f"{len(internal)}:{len(external)}"}
+             "placeholder_links": len(placeholders), "ratio": f"{len(internal)}:{len(external)}"}
         if total == 0:
             self.checks.append(SEOCheck("Link Summary", "links", "fail", 0, 5,
                 "No links found on the page.",
@@ -3759,12 +3768,12 @@ class SEOAnalyzer:
                 details=d, severity=2))
         else:
             self.checks.append(SEOCheck("Link Summary", "links", "pass", 5, 5,
-                f"{total} total links ({len(internal)} internal, {len(external)} external).",
+                f"{total} total links ({len(internal)} internal, {len(external)} external, {len(placeholders)} placeholder).",
                 details=d))
 
     def _check_anchor_text_analysis(self):
-        internal, external = self._get_all_links()
-        all_links = internal + external
+        internal, external, placeholders = self._get_all_links()
+        all_links = internal + external + placeholders
         empty = [l for l in all_links if not l["text"]]
         generic = {"click here", "here", "read more", "more", "link", "this", "learn more"}
         generic_links = [l for l in all_links if l["text"].lower() in generic]
@@ -3787,8 +3796,8 @@ class SEOAnalyzer:
                 details=d, severity=2))
 
     def _check_nofollow_ratio(self):
-        internal, external = self._get_all_links()
-        all_links = internal + external
+        internal, external, placeholders = self._get_all_links()
+        all_links = internal + external + placeholders
         total = len(all_links)
         nofollow = sum(1 for l in all_links if l["nofollow"])
         d = {"total": total, "nofollow": nofollow,
@@ -3810,7 +3819,7 @@ class SEOAnalyzer:
                 "Most internal links should be dofollow for proper link equity.", details=d, severity=2))
 
     def _check_deep_link_ratio(self):
-        internal, _ = self._get_all_links()
+        internal, _, _ = self._get_all_links()
         if not internal:
             return
         homepage_links = sum(1 for l in internal if l["href"].rstrip("/") in ("", "/", self.base_url, self.base_url + "/"))
@@ -3830,7 +3839,7 @@ class SEOAnalyzer:
 
     def _check_broken_links(self):
         """Check a sample of links for broken ones (concurrent)."""
-        internal, external = self._get_all_links()
+        internal, external, _ = self._get_all_links()
         all_links = internal + external
         # Deduplicate by href before checking to avoid redundant requests
         seen_hrefs = set()
@@ -3912,7 +3921,7 @@ class SEOAnalyzer:
 
     def _check_link_diversity(self):
         """Check if links point to diverse pages or mostly the same ones."""
-        internal, _ = self._get_all_links()
+        internal, _, _ = self._get_all_links()
         if len(internal) < 3:
             return
         unique_hrefs = set(l["href"].rstrip("/").split("?")[0] for l in internal)
@@ -3935,23 +3944,16 @@ class SEOAnalyzer:
 
     def _check_empty_anchor(self):
         """Identify links with missing destination URLs or empty hashtags."""
-        links = self.soup.find_all("a")
-        empty = []
-        for l in links:
-            href = l.get("href", "").strip()
-            text = l.get_text(strip=True)
-            if not href or href == "#" or href.startswith("javascript:"):
-                empty.append({"text": text[:50], "href": href})
-                
-        d = {"total_links": len(links), "empty_links_detected": len(empty), "samples": empty[:5]}
-        if not empty:
+        internal, external, placeholders = self._get_all_links()
+        total = len(internal) + len(external) + len(placeholders)
+        d = {"total_links": total, "empty_links_detected": len(placeholders), "samples": placeholders[:5]}
+        if not placeholders:
             self.checks.append(SEOCheck("Empty Links Detection", "links", "pass", 5, 5,
                 "All anchor links have defined destination URLs.", details=d))
         else:
             self.checks.append(SEOCheck("Empty Links Detection", "links", "warning", 3, 5,
-                f"Detected {len(empty)} link(s) with empty or placeholder destinations.",
+                f"Detected {len(placeholders)} link(s) with empty or placeholder destinations.",
                 "Remove empty/placeholder links or point them to valid URLs to improve user navigability.", details=d, severity=3))
-
     def _check_image_link_label(self):
         """Audit links wrapping images to ensure they contain text descriptions or image alt attributes."""
         links = self.soup.find_all("a")
