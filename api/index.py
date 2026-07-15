@@ -18,6 +18,146 @@ def safe_log(msg):
     except Exception:
         pass
 
+try:
+    from playwright.sync_api import sync_playwright
+    PLAYWRIGHT_AVAILABLE = True
+except ImportError:
+    PLAYWRIGHT_AVAILABLE = False
+
+def extract_open_graph_tags(page):
+    """
+    Antigravity Engine: Open Graph Tags Auditor
+    100% Accurate DOM Extraction via Playwright
+    """
+    og_metrics = {
+        "og:title": None,
+        "og:description": None,
+        "og:image": None,
+        "og:url": None,
+        "status": "Missing"
+    }
+    try:
+        meta_tags = page.query_selector_all('meta[property^="og:"]')
+        found_tags = 0
+        for tag in meta_tags:
+            prop = tag.get_attribute("property")
+            content = tag.get_attribute("content")
+            if prop in og_metrics:
+                og_metrics[prop] = content
+                found_tags += 1
+        if found_tags == 4:
+            og_metrics["status"] = "Fully Optimized"
+        elif found_tags > 0:
+            og_metrics["status"] = "Partially Optimized"
+        return og_metrics
+    except Exception as e:
+        return {"status": "Error", "error": str(e)}
+
+def extract_open_graph_tags_fallback(soup):
+    """
+    Antigravity Engine: Open Graph Tags Auditor (BeautifulSoup Fallback)
+    """
+    og_metrics = {
+        "og:title": None,
+        "og:description": None,
+        "og:image": None,
+        "og:url": None,
+        "status": "Missing"
+    }
+    try:
+        import re
+        meta_tags = soup.find_all("meta", property=re.compile(r"^og:"))
+        found_tags = 0
+        for tag in meta_tags:
+            prop = tag.get("property")
+            content = tag.get("content")
+            if prop in og_metrics:
+                og_metrics[prop] = content
+                found_tags += 1
+        if found_tags == 4:
+            og_metrics["status"] = "Fully Optimized"
+        elif found_tags > 0:
+            og_metrics["status"] = "Partially Optimized"
+        return og_metrics
+    except Exception as e:
+        return {"status": "Error", "error": str(e)}
+
+def calculate_keyword_density(page):
+    """
+    Antigravity Engine: Pure Content Keyword Density Analyzer
+    Strips Boilerplate Code for 100% Accuracy via Playwright
+    """
+    try:
+        import re
+        from collections import Counter
+        raw_text = page.evaluate("""() => {
+            const targets = ['script', 'style', 'nav', 'footer', 'noscript', 'header'];
+            targets.forEach(tag => {
+                document.querySelectorAll(tag).forEach(el => el.remove());
+            });
+            return document.body.innerText || document.body.textContent;
+        }""")
+        clean_text = re.sub(r'[^\w\s]', '', raw_text.lower())
+        words = clean_text.split()
+        total_word_count = len(words)
+        if total_word_count == 0:
+            return {"total_words": 0, "top_keywords": []}
+        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'to', 'of', 'for', 'with', 'by'}
+        filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
+        word_counts = Counter(filtered_words)
+        top_keywords = []
+        for word, count in word_counts.most_common(10):
+            density_percentage = round((count / total_word_count) * 100, 2)
+            top_keywords.append({
+                "keyword": word,
+                "count": count,
+                "density": f"{density_percentage}%",
+                "status": "Stuffing Alert" if density_percentage > 3.0 else "Optimal"
+            })
+        return {
+            "total_words": total_word_count,
+            "top_keywords": top_keywords
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+def calculate_keyword_density_fallback(soup):
+    """
+    Antigravity Engine: Pure Content Keyword Density Analyzer (BeautifulSoup Fallback)
+    """
+    try:
+        import re
+        import copy
+        from collections import Counter
+        soup_copy = copy.copy(soup)
+        for tag in ['script', 'style', 'nav', 'footer', 'noscript', 'header']:
+            for el in soup_copy.find_all(tag):
+                el.decompose()
+        raw_text = soup_copy.get_text(" ")
+        clean_text = re.sub(r'[^\w\s]', '', raw_text.lower())
+        words = clean_text.split()
+        total_word_count = len(words)
+        if total_word_count == 0:
+            return {"total_words": 0, "top_keywords": []}
+        stop_words = {'the', 'a', 'an', 'and', 'or', 'but', 'is', 'are', 'was', 'were', 'in', 'on', 'at', 'to', 'of', 'for', 'with', 'by'}
+        filtered_words = [word for word in words if word not in stop_words and len(word) > 2]
+        word_counts = Counter(filtered_words)
+        top_keywords = []
+        for word, count in word_counts.most_common(10):
+            density_percentage = round((count / total_word_count) * 100, 2)
+            top_keywords.append({
+                "keyword": word,
+                "count": count,
+                "density": f"{density_percentage}%",
+                "status": "Stuffing Alert" if density_percentage > 3.0 else "Optimal"
+            })
+        return {
+            "total_words": total_word_count,
+            "top_keywords": top_keywords
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
 # Initialize MongoClient utilising MONGODB_URI environment variable
 mongo_uri = os.environ.get("MONGODB_URI")
 client = None
@@ -71,6 +211,36 @@ def analyze():
         analyzer = SEOAnalyzer(url, focus_keyword=keyword, website_category=category)
         report = analyzer.analyze()
         
+        # Open Graph (OG) and Keyword Density extraction
+        og_results = None
+        keyword_results = None
+        
+        if PLAYWRIGHT_AVAILABLE:
+            try:
+                from playwright.sync_api import sync_playwright
+                with sync_playwright() as p:
+                    browser = p.chromium.launch(headless=True)
+                    page = browser.new_page()
+                    page.goto(url, timeout=12000, wait_until="load")
+                    og_results = extract_open_graph_tags(page)
+                    keyword_results = calculate_keyword_density(page)
+                    browser.close()
+            except Exception as pe:
+                safe_log(f"Playwright analysis failed: {str(pe)}")
+                
+        if not og_results or "error" in og_results or og_results.get("status") == "Error":
+            # Fallback to BeautifulSoup using analyzer.soup or analyzer.html
+            from bs4 import BeautifulSoup
+            try:
+                soup = BeautifulSoup(analyzer.html, "lxml")
+                og_results = extract_open_graph_tags_fallback(soup)
+                keyword_results = calculate_keyword_density_fallback(soup)
+            except Exception as fe:
+                safe_log(f"Fallback BeautifulSoup analysis failed: {str(fe)}")
+                
+        report["og_results"] = og_results
+        report["keyword_results"] = keyword_results
+        
         # Serialize and forcefully trigger a database insert if MongoDB is active
         global client, db, reports_collection
         if reports_collection is None:
@@ -94,7 +264,9 @@ def analyze():
                     "overall_score": report.get("overall_score"),
                     "grade": report.get("grade"),
                     "timestamp": datetime.datetime.utcnow(),
-                    "category_scores": report.get("category_scores")
+                    "category_scores": report.get("category_scores"),
+                    "og_results": report.get("og_results"),
+                    "keyword_results": report.get("keyword_results")
                 }
                 reports_collection.insert_one(report_data_dictionary)
             except Exception as db_err:

@@ -211,6 +211,8 @@ function completeLoadingAnimation(callback) {
 function renderResults(data) {
     renderScoreOverview(data);
     renderSerpPreview(data);
+    renderOpenGraph(data);
+    renderKeywordDensity(data);
     renderTechStack(data);
     renderPageSpeed(data);
     renderGSCDiagnostics(data);
@@ -906,6 +908,111 @@ window.addEventListener("resize", () => {
 /* ══════════════════════════════════════
    SERP PREVIEW
    ══════════════════════════════════════ */
+
+/* ══════════════════════════════════════
+   OPEN GRAPH (OG) PREVIEW WIDGET
+   ══════════════════════════════════════ */
+
+function renderOpenGraph(data) {
+    const el = document.getElementById("ogWidget");
+    if (!el) return;
+    
+    const og = data.og_results;
+    if (!og || og.status === "Error") {
+        el.style.display = "none";
+        return;
+    }
+    
+    el.style.display = "block";
+    
+    let statusClass = "og-status-missing";
+    if (og.status === "Fully Optimized") {
+        statusClass = "og-status-optimized";
+    } else if (og.status === "Partially Optimized") {
+        statusClass = "og-status-partial";
+    }
+    
+    const title = og["og:title"] || "No title defined";
+    const desc = og["og:description"] || "Add description metadata to see your sharing preview card.";
+    const imgHtml = og["og:image"] ? `<div class="og-preview-image" style="background-image: url('${esc(og["og:image"])}');"></div>` : `<div class="og-preview-image-placeholder">No Open Graph Image Found</div>`;
+    const url = og["og:url"] || data.final_url || data.url;
+    let domain = "";
+    try {
+        domain = new URL(url).hostname;
+    } catch(e) {
+        domain = url;
+    }
+
+    el.innerHTML = `
+        <h3 class="widget-title">
+            <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg> 
+            Social Sharing Preview (OG)
+            <span class="og-status-badge ${statusClass}">${esc(og.status)}</span>
+        </h3>
+        <div class="og-card">
+            ${imgHtml}
+            <div class="og-card-body">
+                <div class="og-card-domain">${esc(domain)}</div>
+                <div class="og-card-title">${esc(title)}</div>
+                <div class="og-card-desc">${esc(desc)}</div>
+            </div>
+        </div>
+    `;
+}
+
+/* ══════════════════════════════════════
+   KEYWORD DENSITY WIDGET
+   ══════════════════════════════════════ */
+
+function renderKeywordDensity(data) {
+    const el = document.getElementById("keywordDensityWidget");
+    if (!el) return;
+    
+    const kd = data.keyword_results;
+    if (!kd || kd.error || !kd.top_keywords || kd.top_keywords.length === 0) {
+        el.style.display = "none";
+        return;
+    }
+    
+    el.style.display = "block";
+    
+    let html = `
+        <h3 class="widget-title">
+            <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="4" y1="9" x2="20" y2="9"/>
+                <line x1="4" y1="15" x2="20" y2="15"/>
+                <line x1="10" y1="3" x2="8" y2="21"/>
+                <line x1="16" y1="3" x2="14" y2="21"/>
+            </svg>
+            Top Keywords & Density
+            <span style="font-size: 0.72rem; color: var(--text-secondary); font-weight: normal; margin-left: 6px;">(${kd.total_words} words parsed)</span>
+        </h3>
+        <div class="kd-list">
+    `;
+    
+    for (const item of kd.top_keywords) {
+        const isAlert = item.status === "Stuffing Alert";
+        const badgeClass = isAlert ? "kd-badge-alert" : "kd-badge-optimal";
+        html += `
+            <div class="kd-item">
+                <div class="kd-item-left">
+                    <span class="kd-keyword-name">${esc(item.keyword)}</span>
+                    <span class="kd-count-badge">${item.count} times</span>
+                </div>
+                <div class="kd-item-right">
+                    <span class="kd-density-value">${item.density}</span>
+                    <span class="kd-status-tag ${badgeClass}">${esc(item.status)}</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    html += `</div>`;
+    el.innerHTML = html;
+}
 
 function renderSerpPreview(data) {
     const el = document.getElementById("serpPreview");
