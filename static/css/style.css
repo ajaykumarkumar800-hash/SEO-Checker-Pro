@@ -61,6 +61,7 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     line-height: 1.6;
+    font-variant-numeric: slashed-zero;
 }
 
 /* ── BACKGROUND ── */
@@ -521,6 +522,11 @@ body {
     @page {
         margin: 0;
     }
+    html, body {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
     body {
         background: white !important;
         color: #111111 !important;
@@ -529,6 +535,7 @@ body {
         padding: 0;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
+        font-variant-numeric: slashed-zero;
     }
     .bg-grid, .bg-glow, .header, .hero, .loading-section, .results-section, .footer, .compare-section, .history-section, .gsc-section, .footer-support-section {
         display: none !important;
@@ -539,6 +546,8 @@ body {
         margin: 0;
         padding: 1.6cm 1.8cm 1.6cm 1.8cm !important;
         box-sizing: border-box;
+        overflow: visible !important;
+        max-height: none !important;
     }
     .print-header {
         border-bottom: 2px solid #333;
@@ -606,7 +615,10 @@ body {
         border-radius: 6px;
         padding: 10px 12px;
         margin-bottom: 8px;
-        break-inside: avoid;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        overflow: visible !important;
+        max-height: none !important;
     }
     .print-check-card.pass { border-left: 4px solid #10b981; }
     .print-check-card.warning { border-left: 4px solid #f59e0b; }
@@ -645,6 +657,8 @@ body {
         white-space: normal !important;
         word-wrap: break-word !important;
         word-break: break-word !important;
+        overflow: visible !important;
+        max-height: none !important;
     }
     .print-check-rec {
         background: #f8fafc;
@@ -657,6 +671,20 @@ body {
         white-space: normal !important;
         word-wrap: break-word !important;
         word-break: break-word !important;
+        overflow: visible !important;
+        max-height: none !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    /* Explicit Print Wrapping Styles requested by user */
+    .performance-card, .recommendation-text {
+        white-space: normal !important;
+        overflow: visible !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        max-height: none !important;
     }
     .print-check-details {
         font-size: 10px;
@@ -675,7 +703,32 @@ body {
         font-size: 8px;
     }
     .print-detail-value {
-        word-break: break-all;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        white-space: normal !important;
+        overflow: visible !important;
+    }
+
+    /* Antigravity System Instruction: Enforce complete print media document layout safety */
+    /* Prevent containers from restricting element heights dynamically */
+    .card, .widget-box, .section-block, blockquote, p, div {
+        max-height: none !important;
+        overflow: visible !important;
+        height: auto !important;
+    }
+
+    /* Force recommendation text nodes to automatically break and wrap across columns */
+    .recommendation-text, p[class*="recommendation"], td, span {
+        white-space: normal !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        display: block !important;
+    }
+
+    /* Prevent page break splitting bugs directly inside individual error elements */
+    .failed-card, .fail-status-container {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
 }
 

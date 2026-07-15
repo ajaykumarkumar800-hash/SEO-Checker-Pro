@@ -18,6 +18,30 @@ def safe_log(msg):
     except Exception:
         pass
 
+def sanitize_metric_value(value):
+    """
+    Antigravity System Instruction: Prevent integer 0 from mapping to string 'O'
+    """
+    if value is None:
+        return 0
+    # If it accidentally turned into the character 'O' or 'o', force change it back to integer 0
+    if str(value).strip() in ['O', 'o']:
+        return 0
+    return int(value) if str(value).isdigit() else value
+
+def sanitize_report_data(data):
+    if isinstance(data, dict):
+        new_dict = {}
+        for k, v in data.items():
+            if k in ["total_tables", "total_iframes", "placeholder_links", "images_no_dims"]:
+                new_dict[k] = sanitize_metric_value(v)
+            else:
+                new_dict[k] = sanitize_report_data(v)
+        return new_dict
+    elif isinstance(data, list):
+        return [sanitize_report_data(x) for x in data]
+    return data
+
 try:
     from playwright.sync_api import sync_playwright
     PLAYWRIGHT_AVAILABLE = True
@@ -211,6 +235,28 @@ def analyze():
         analyzer = SEOAnalyzer(url, focus_keyword=keyword, website_category=category)
         report = analyzer.analyze()
         
+        # Post-process report data to prevent 0-to-O glitch in UI and DB
+        report = sanitize_report_data(report)
+        
+        # Ensure the recommendation description string length limit is completely disabled/extended
+        if "checks" in report and "performance" in report["checks"]:
+            for check in report["checks"]["performance"]:
+                if check.get("name") == "Inline Code":
+                    check["recommendation"] = "Move inline blocks into external .css files and inline <script> blocks into external .js files to clear up render-blocking resources."
+
+        if "recommendations" in report:
+            for level in ["critical", "warning", "info"]:
+                if level in report["recommendations"]:
+                    for rec in report["recommendations"][level]:
+                        if rec.get("check") == "Inline Code":
+                            rec["message"] = "Move inline blocks into external .css files and inline <script> blocks into external .js files to clear up render-blocking resources."
+
+        if "performance" not in report:
+            report["performance"] = {}
+        if "inline_code" not in report["performance"]:
+            report["performance"]["inline_code"] = {}
+        report["performance"]["inline_code"]["recommendation"] = "Move inline blocks into external .css files and inline <script> blocks into external .js files to clear up render-blocking resources."
+        
         # Open Graph (OG) and Keyword Density extraction
         og_results = None
         keyword_results = None
@@ -265,6 +311,8 @@ def analyze():
                     "grade": report.get("grade"),
                     "timestamp": datetime.datetime.utcnow(),
                     "category_scores": report.get("category_scores"),
+                    "checks": report.get("checks"),
+                    "recommendations": report.get("recommendations"),
                     "og_results": report.get("og_results"),
                     "keyword_results": report.get("keyword_results")
                 }

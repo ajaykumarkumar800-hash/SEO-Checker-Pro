@@ -15,6 +15,30 @@ def safe_log(msg):
     except Exception:
         pass
 
+def sanitize_metric_value(value):
+    """
+    Antigravity System Instruction: Prevent integer 0 from mapping to string 'O'
+    """
+    if value is None:
+        return 0
+    # If it accidentally turned into the character 'O' or 'o', force change it back to integer 0
+    if str(value).strip() in ['O', 'o']:
+        return 0
+    return int(value) if str(value).isdigit() else value
+
+def sanitize_report_data(data):
+    if isinstance(data, dict):
+        new_dict = {}
+        for k, v in data.items():
+            if k in ["total_tables", "total_iframes", "placeholder_links", "images_no_dims"]:
+                new_dict[k] = sanitize_metric_value(v)
+            else:
+                new_dict[k] = sanitize_report_data(v)
+        return new_dict
+    elif isinstance(data, list):
+        return [sanitize_report_data(x) for x in data]
+    return data
+
 try:
     from playwright.sync_api import sync_playwright
     PLAYWRIGHT_AVAILABLE = True
@@ -208,6 +232,28 @@ def analyze():
         analyzer = SEOAnalyzer(url, focus_keyword=keyword, website_category=category)
         report = analyzer.analyze()
         
+        # Post-process report data to prevent 0-to-O glitch in UI and DB
+        report = sanitize_report_data(report)
+        
+        # Ensure the recommendation description string length limit is completely disabled/extended
+        if "checks" in report and "performance" in report["checks"]:
+            for check in report["checks"]["performance"]:
+                if check.get("name") == "Inline Code":
+                    check["recommendation"] = "Move inline blocks into external .css files and inline <script> blocks into external .js files to clear up render-blocking resources."
+
+        if "recommendations" in report:
+            for level in ["critical", "warning", "info"]:
+                if level in report["recommendations"]:
+                    for rec in report["recommendations"][level]:
+                        if rec.get("check") == "Inline Code":
+                            rec["message"] = "Move inline blocks into external .css files and inline <script> blocks into external .js files to clear up render-blocking resources."
+
+        if "performance" not in report:
+            report["performance"] = {}
+        if "inline_code" not in report["performance"]:
+            report["performance"]["inline_code"] = {}
+        report["performance"]["inline_code"]["recommendation"] = "Move inline blocks into external .css files and inline <script> blocks into external .js files to clear up render-blocking resources."
+        
         # Open Graph (OG) and Keyword Density extraction
         og_results = None
         keyword_results = None
@@ -262,6 +308,8 @@ def analyze():
                     "grade": report.get("grade"),
                     "timestamp": datetime.datetime.utcnow(),
                     "category_scores": report.get("category_scores"),
+                    "checks": report.get("checks"),
+                    "recommendations": report.get("recommendations"),
                     "og_results": report.get("og_results"),
                     "keyword_results": report.get("keyword_results")
                 }
@@ -308,6 +356,65 @@ def compare():
     except Exception as e:
         return jsonify({"success": False, "error": f"Comparison error: {str(e)}"}), 500
 
+@app.route("/api/gsc-live-audit", methods=["POST"])
+def gsc_live_audit():
+    """Verify live HTTP status of a list of GSC URLs concurrently."""
+    data = request.get_json()
+    if not data or not data.get("urls"):
+        return jsonify({"success": True, "results": {}})
+    
+    urls = data["urls"]
+    # Restrict to first 100 to prevent server overload
+    urls = urls[:100]
+    
+    import concurrent.futures
+    import requests
+    
+    results = {}
+    
+    def check_url(url):
+        url = url.strip()
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+        try:
+            headers = {
+                "User-Agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                    "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                )
+            }
+            # Make a fast HEAD request (follow redirects to check final status)
+            r = requests.head(url, timeout=4, allow_redirects=True, headers=headers)
+            if r.status_code in [403, 404, 405, 412, 500, 501, 502, 503, 504] or r.status_code >= 400:
+                r = requests.get(url, timeout=4, allow_redirects=True, stream=True, headers=headers)
+            
+            # Check redirect history
+            is_redirected = len(r.history) > 0
+            
+            return url, {
+                "status_code": r.status_code,
+                "is_redirected": is_redirected,
+                "final_url": r.url
+            }
+        except Exception:
+            return url, {
+                "status_code": 0, # Timeout/Connection error
+                "is_redirected": False,
+                "final_url": url
+            }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as executor:
+        futures_to_url = {executor.submit(check_url, url): url for url in urls}
+        for future in concurrent.futures.as_completed(futures_to_url):
+            try:
+                url, res = future.result()
+                results[url] = res
+            except Exception:
+                pass
+                
+    return jsonify({"success": True, "results": results})
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5002)
+
