@@ -451,6 +451,8 @@ body {
     white-space: normal !important;
     word-wrap: break-word !important;
     word-break: break-word !important;
+    overflow: visible !important;
+    height: auto !important;
 }
 .check-recommendation strong { color: var(--text-primary); }
 .detail-grid {
@@ -673,6 +675,7 @@ body {
         word-break: break-word !important;
         overflow: visible !important;
         max-height: none !important;
+        height: auto !important;
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }

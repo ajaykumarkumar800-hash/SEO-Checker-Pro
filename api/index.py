@@ -238,6 +238,31 @@ def analyze():
         # Post-process report data to prevent 0-to-O glitch in UI and DB
         report = sanitize_report_data(report)
         
+        # Force strict integer casting for accessibility.tables_missing_headers and content_quality.content_formatting.tables
+        tables_missing = 0
+        if "checks" in report and "accessibility" in report["checks"]:
+            for check in report["checks"]["accessibility"]:
+                if check.get("name") == "Accessible Tables Check":
+                    tables_missing = check.get("details", {}).get("tables_missing_headers", 0)
+                    break
+        
+        content_tables = 0
+        if "checks" in report and "content" in report["checks"]:
+            for check in report["checks"]["content"]:
+                if check.get("name") == "Content Formatting":
+                    content_tables = check.get("details", {}).get("tables", 0)
+                    break
+
+        if 'accessibility' not in report:
+            report['accessibility'] = {}
+        report['accessibility']['tables_missing_headers'] = int(report['accessibility'].get('tables_missing_headers', tables_missing))
+        
+        if 'content_quality' not in report:
+            report['content_quality'] = {}
+        if 'content_formatting' not in report['content_quality']:
+            report['content_quality']['content_formatting'] = {}
+        report['content_quality']['content_formatting']['tables'] = int(report['content_quality']['content_formatting'].get('tables', content_tables))
+        
         # Ensure the recommendation description string length limit is completely disabled/extended
         if "checks" in report and "performance" in report["checks"]:
             for check in report["checks"]["performance"]:
@@ -313,6 +338,8 @@ def analyze():
                     "category_scores": report.get("category_scores"),
                     "checks": report.get("checks"),
                     "recommendations": report.get("recommendations"),
+                    "accessibility": report.get("accessibility"),
+                    "content_quality": report.get("content_quality"),
                     "og_results": report.get("og_results"),
                     "keyword_results": report.get("keyword_results")
                 }
