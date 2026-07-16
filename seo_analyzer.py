@@ -103,6 +103,21 @@ class SEOAnalyzer:
             url = "https://" + url
         return url
 
+    def _clean_image_src(self, src):
+        """Extract raw image path from Next.js optimized images (/_next/image?url=)"""
+        from urllib.parse import urlparse, parse_qs, unquote
+        if not src:
+            return ""
+        if "/_next/image" in src or "_next/image" in src:
+            try:
+                parsed = urlparse(src)
+                qs = parse_qs(parsed.query)
+                if "url" in qs:
+                    return unquote(qs["url"][0])
+            except Exception:
+                pass
+        return src
+
     def fetch_page(self):
         """Fetch the target page."""
         try:
@@ -427,6 +442,7 @@ class SEOAnalyzer:
         large_filenames = []
         for img in images:
             src = img.get("src", img.get("data-src", ""))
+            src = self._clean_image_src(src)
             alt = img.get("alt")
             if alt is None:
                 missing_alt.append(src[:100])
@@ -815,6 +831,7 @@ class SEOAnalyzer:
         format_counts = {}
         for img in images:
             src = img.get("src", img.get("data-src", ""))
+            src = self._clean_image_src(src)
             if not src:
                 continue
             # Decode URL-encoded parameters (e.g., Next.js query parameters)
@@ -2501,7 +2518,8 @@ class SEOAnalyzer:
         for img in images:
             if not img.get("width") or not img.get("height"):
                 missing_dims += 1
-            src = (img.get("src") or img.get("data-src") or "").lower()
+            src = (img.get("src") or img.get("data-src") or "")
+            src = self._clean_image_src(src).lower()
             # Check for modern formats anywhere in URL (not just endsWith)
             # because image CDNs/optimizers like Next.js append query params
             if any(ext in src for ext in [".webp", ".avif", ".svg", "format=webp", "f_webp", "fm=webp"]):
@@ -3858,6 +3876,8 @@ class SEOAnalyzer:
 
         def check_link(link_info):
             href = link_info["href"]
+            if href.startswith("#"):
+                return None
             if href.startswith("/"):
                 href = self.base_url + href
             # Skip known non-page URLs that always fail (Cloudflare email protection, etc.)

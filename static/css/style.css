@@ -1979,5 +1979,16 @@ body {
     color: #ff4e42;
 }
 
+/* Collapsible detail lists */
+.collapsible-detail-list[open] .toggle-arrow {
+    transform: rotate(90deg);
+}
+.collapsible-detail-list summary::-webkit-details-marker {
+    display: none;
+}
+.collapsible-detail-list summary {
+    list-style: none;
+}
+
 
 

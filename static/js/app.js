@@ -625,21 +625,42 @@ function renderDetail(key, value) {
 
     if (Array.isArray(value)) {
         if (value.length === 0) return "";
-        if (typeof value[0] === "object") {
-            let html = '<ul class="detail-list">';
-            for (const item of value.slice(0, 10)) {
+        let listItems = "";
+        let isObject = typeof value[0] === "object";
+        
+        for (const item of value) {
+            if (isObject) {
                 const parts = Object.entries(item).map(([k, v]) => `<strong>${k}:</strong> ${esc(String(v))}`).join(" — ");
-                html += `<li>${parts}</li>`;
+                listItems += `<li>${parts}</li>`;
+            } else {
+                listItems += `<li>${esc(String(item))}</li>`;
             }
-            if (value.length > 10) html += `<li>… and ${value.length - 10} more</li>`;
-            html += "</ul>";
-            return `<div class="detail-item" style="grid-column:1/-1"><div class="detail-label">${label}</div>${html}</div>`;
         }
-        let html = '<ul class="detail-list">';
-        for (const item of value.slice(0, 10)) html += `<li>${esc(String(item))}</li>`;
-        if (value.length > 10) html += `<li>… and ${value.length - 10} more</li>`;
-        html += "</ul>";
-        return `<div class="detail-item" style="grid-column:1/-1"><div class="detail-label">${label} (${value.length})</div>${html}</div>`;
+
+        if (value.length > 3) {
+            return `
+                <div class="detail-item" style="grid-column:1/-1">
+                    <details class="collapsible-detail-list">
+                        <summary class="detail-label" style="cursor:pointer; display:flex; align-items:center; gap:6px; outline:none; user-select:none; font-weight:600; color:var(--text-secondary);">
+                            <span class="toggle-arrow" style="transition:transform 0.2s; display:inline-block; font-size:8px; line-height:1;">▶</span>
+                            ${label} (${value.length})
+                        </summary>
+                        <ul class="detail-list" style="margin-top:8px; padding-left:14px;">
+                            ${listItems}
+                        </ul>
+                    </details>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="detail-item" style="grid-column:1/-1">
+                    <div class="detail-label">${label} (${value.length})</div>
+                    <ul class="detail-list" style="padding-left:14px;">
+                        ${listItems}
+                    </ul>
+                </div>
+            `;
+        }
     }
 
     if (typeof value === "object" && value !== null) {
@@ -702,9 +723,13 @@ function drawRadarChart(scores) {
         const cosAngle = Math.cos(angle);
         const sinAngle = Math.sin(angle);
         
-        // Push labels slightly outwards from the axes
-        const lx = cx + (radius + 12) * cosAngle;
-        const ly = cy + (radius + 12) * sinAngle;
+        // Push labels slightly outwards from the axes to prevent overlap (especially Speed, On-Page, and Resources)
+        let labelOffset = 16;
+        if (key === "on_page") labelOffset = 22; // Push top label higher
+        if (key === "performance") labelOffset = 22; // Push bottom label lower
+        if (key === "resources") labelOffset = 22; // Push bottom-left label further out
+        const lx = cx + (radius + labelOffset) * cosAngle;
+        const ly = cy + (radius + labelOffset) * sinAngle;
 
         // Axis line
         ctx.beginPath();
