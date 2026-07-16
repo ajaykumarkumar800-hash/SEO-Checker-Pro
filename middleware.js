@@ -15,7 +15,7 @@ export async function middleware(request) {
                    '127.0.0.1';
 
         const key = `ratelimit:${ip}`;
-        const limit = 20; // Maximum 20 scans per 24 hours
+        const limit = 2; // Maximum 2 scans per 24 hours
         
         try {
             // Absolute Atomic Transactions (Race Conditions Bypass)
