@@ -1677,7 +1677,9 @@ class SEOAnalyzer:
         for img in imgs:
             alt = img.get("alt", "")
             if alt and kw in alt.lower():
-                matches.append(img.get("src", "")[:80])
+                src = img.get("src", "")
+                src = self._clean_image_src(src)
+                matches.append(src[:80])
         
         d = {"keyword": kw, "image_alt_matches_count": len(matches), "matched_image_sources": matches[:3]}
         if matches:
@@ -2598,7 +2600,8 @@ class SEOAnalyzer:
         hero_image = None
         for img in images[:5]:  # first few images are likely hero
             if not img.get("fetchpriority") == "high" and not img.get("loading") == "eager":
-                hero_image = img.get("src", "")[:80]
+                src = img.get("src", "")
+                hero_image = self._clean_image_src(src)[:80]
                 break
         if hero_image:
             issues.append("Hero image may lack fetchpriority=\"high\"")

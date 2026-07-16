@@ -687,7 +687,7 @@ function drawRadarChart(scores) {
     canvas.style.height = h + "px";
     ctx.scale(dpr, dpr);
 
-    const cx = w / 2, cy = h / 2, radius = 120;
+    const cx = w / 2, cy = h / 2, radius = 108;
     const cats = Object.entries(scores);
     const n = cats.length;
     const angleStep = (2 * Math.PI) / n;
@@ -725,6 +725,9 @@ function drawRadarChart(scores) {
         
         // Push labels slightly outwards from the axes to prevent overlap (especially Speed, On-Page, and Resources)
         let labelOffset = 16;
+        if (Math.abs(cosAngle) > 0.3) {
+            labelOffset = 22; // push left/right labels further out horizontally
+        }
         if (key === "on_page") labelOffset = 22; // Push top label higher
         if (key === "performance") labelOffset = 22; // Push bottom label lower
         if (key === "resources") labelOffset = 22; // Push bottom-left label further out
