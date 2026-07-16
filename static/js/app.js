@@ -32,7 +32,13 @@ function startAnalysis() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, keyword, website_category: category }),
     })
-    .then(r => r.json())
+    .then(r => {
+        if (r.status === 429) {
+            showRateLimitOverlay();
+            throw new Error("RATE_LIMIT_EXCEEDED");
+        }
+        return r.json();
+    })
     .then(data => {
         if (data.success) {
             completeLoadingAnimation(() => {
@@ -48,7 +54,8 @@ function startAnalysis() {
             showError(data.error || "Analysis failed.");
         }
     })
-    .catch(() => {
+    .catch(err => {
+        if (err.message === "RATE_LIMIT_EXCEEDED") return;
         clearIntervals();
         setLoading(false);
         showSection("hero");
@@ -1545,5 +1552,44 @@ function analyzeGSCRawData() {
         // Fallback to offline parsing if API fails
         resultsEl.innerHTML = "<div class='error-msg'>Connection error. Please try again.</div>";
     });
+}
+
+function showRateLimitOverlay() {
+    clearIntervals();
+    setLoading(false);
+    showSection("hero");
+    
+    // Disable inputs
+    const urlInput = document.getElementById("urlInput");
+    const keywordInput = document.getElementById("keywordInput");
+    const categorySelect = document.getElementById("categorySelect");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    
+    if (urlInput) urlInput.disabled = true;
+    if (keywordInput) keywordInput.disabled = true;
+    if (categorySelect) categorySelect.disabled = true;
+    if (analyzeBtn) analyzeBtn.disabled = true;
+    
+    // Show banner
+    const banner = document.getElementById("rateLimitBanner");
+    if (banner) banner.style.display = "flex";
+    
+    // Add Lock Overlay
+    const wrapper = document.getElementById("searchFieldsWrapper");
+    if (wrapper && !document.getElementById("searchLockOverlay")) {
+        const overlay = document.createElement("div");
+        overlay.id = "searchLockOverlay";
+        overlay.className = "search-lock-overlay";
+        overlay.innerHTML = `
+            <div class="lock-box">
+                <svg class="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                <span>Scanner Locked — Daily Limit Reached</span>
+            </div>
+        `;
+        wrapper.appendChild(overlay);
+    }
 }
 

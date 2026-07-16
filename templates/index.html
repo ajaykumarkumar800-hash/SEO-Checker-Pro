@@ -44,36 +44,48 @@
             <h1 class="hero-title"><span class="gradient-text">SEO Checker Pro</span></h1>
             <p class="hero-subtitle">Analyze any website with 130+ real-time SEO checks across 10 categories</p>
             
-            <div class="search-box">
-                <div class="search-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                </div>
-                <label for="urlInput" class="sr-only">Website URL</label>
-                <input type="text" id="urlInput" class="search-input" placeholder="Enter website URL (e.g., example.com)" autocomplete="off" aria-label="Website URL to scan">
-                <button id="analyzeBtn" class="search-btn" onclick="startAnalysis()">
-                    <span class="btn-loader" style="display:none; align-items:center; margin-right:6px;">
-                        <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-                            <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
-                            <path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>
+            <div id="searchFieldsWrapper" style="position: relative; max-width: 680px; margin: 0 auto;">
+                <div class="search-box">
+                    <div class="search-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
                         </svg>
-                    </span>
-                    <span class="btn-text">Analyze</span>
-                </button>
+                    </div>
+                    <label for="urlInput" class="sr-only">Website URL</label>
+                    <input type="text" id="urlInput" class="search-input" placeholder="Enter website URL (e.g., example.com)" autocomplete="off" aria-label="Website URL to scan">
+                    <button id="analyzeBtn" class="search-btn" onclick="startAnalysis()">
+                        <span class="btn-loader" style="display:none; align-items:center; margin-right:6px;">
+                            <svg class="spinner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.2)" stroke-width="3"/>
+                                <path d="M12 2a10 10 0 0 1 10 10" stroke="white" stroke-width="3" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                        <span class="btn-text">Analyze</span>
+                    </button>
+                </div>
+                
+                <div style="display: flex; gap: 12px; margin-top: 15px; width: 100%;">
+                    <div style="flex: 2; position: relative;">
+                        <label for="keywordInput" class="sr-only">Focus Keyword</label>
+                        <input type="text" id="keywordInput" class="keyword-input" placeholder="Focus keyword (optional)" aria-label="Optional Focus Keyword">
+                    </div>
+                    <div style="flex: 1; position: relative;">
+                        <label for="categorySelect" class="sr-only">Website Category</label>
+                        <select id="categorySelect" class="keyword-input" aria-label="Website Category" style="cursor: pointer; appearance: none; -webkit-appearance: none; padding-right: 32px; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 14px center; background-size: 10px auto;">
+                            <option value="general" style="background:#0f172a; color:#f8fafc;">General Blog / Corp</option>
+                            <option value="technical" style="background:#0f172a; color:#f8fafc;">Technical / B2B</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             
-            <div style="display: flex; gap: 12px; max-width: 680px; margin: 15px auto 0 auto; width: 100%;">
-                <div style="flex: 2; position: relative;">
-                    <label for="keywordInput" class="sr-only">Focus Keyword</label>
-                    <input type="text" id="keywordInput" class="keyword-input" placeholder="Focus keyword (optional)" aria-label="Optional Focus Keyword">
-                </div>
-                <div style="flex: 1; position: relative;">
-                    <label for="categorySelect" class="sr-only">Website Category</label>
-                    <select id="categorySelect" class="keyword-input" aria-label="Website Category" style="cursor: pointer; appearance: none; -webkit-appearance: none; padding-right: 32px; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2394a3b8%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22/%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 14px center; background-size: 10px auto;">
-                        <option value="general" style="background:#0f172a; color:#f8fafc;">General Blog / Corp</option>
-                        <option value="technical" style="background:#0f172a; color:#f8fafc;">Technical / B2B</option>
-                    </select>
+            <div id="rateLimitBanner" class="rate-limit-banner" style="display: none; margin: 20px auto 0 auto; max-width: 680px; width: 100%;">
+                <div class="rl-content">
+                    <svg class="rl-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                    <span>Your search limit has been reached. Please try again after 24 hours.</span>
                 </div>
             </div>
             

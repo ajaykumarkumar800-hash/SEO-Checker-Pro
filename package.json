@@ -1,0 +1,8 @@
+{
+  "name": "seo-checker-pro-edge",
+  "version": "1.0.0",
+  "dependencies": {
+    "@vercel/kv": "^1.0.1",
+    "next": "^14.0.0"
+  }
+}
