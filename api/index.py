@@ -478,6 +478,48 @@ def gsc_live_audit():
     return jsonify({"success": True, "results": results})
 
 
+@app.route("/api/debug-env", methods=["GET"])
+def debug_env():
+    """Diagnostic route to test PageSpeed Insights API key and Vercel/Local env settings."""
+    import os
+    import requests
+    pk = os.environ.get("PAGESPEED_API_KEY")
+    gk = os.environ.get("GOOGLE_API_KEY")
+    
+    # Hide actual key chars for security (show only length and prefix/suffix)
+    def mask_key(k):
+        if not k:
+            return "Not Configured"
+        if len(k) <= 8:
+            return "*" * len(k)
+        return k[:4] + "*" * (len(k) - 8) + k[-4:]
+        
+    pk_masked = mask_key(pk)
+    gk_masked = mask_key(gk)
+    
+    # Test API call using active key
+    active_key = pk or gk
+    test_url = "https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=https://example.com/&strategy=mobile&category=performance"
+    if active_key:
+        test_url += f"&key={active_key}"
+        
+    status_code = None
+    resp_text = None
+    try:
+        r = requests.get(test_url, timeout=15)
+        status_code = r.status_code
+        resp_text = r.text[:600]
+    except Exception as e:
+        resp_text = f"Connection Error: {str(e)}"
+        
+    return jsonify({
+        "PAGESPEED_API_KEY": pk_masked,
+        "GOOGLE_API_KEY": gk_masked,
+        "active_key_used": "PAGESPEED_API_KEY" if pk else ("GOOGLE_API_KEY" if gk else "None"),
+        "test_api_call_status": status_code,
+        "test_api_call_response": resp_text
+    })
+
 
 # For local testing
 if __name__ == "__main__":
