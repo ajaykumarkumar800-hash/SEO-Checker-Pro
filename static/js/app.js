@@ -130,7 +130,7 @@ function animateLoadingSteps() {
     steps.forEach(s => s.className = "loading-step");
     
     if (ringFill) {
-        ringFill.style.transition = "stroke-dashoffset 0.25s linear";
+        ringFill.style.transition = "stroke-dashoffset 0.05s linear";
         ringFill.style.strokeDashoffset = "264";
     }
     
@@ -151,10 +151,10 @@ function animateLoadingSteps() {
         }
     }, 1000);
     
-    // 2. Smooth pseudo-progress bar logic
+    // 2. Smooth fluid pseudo-progress bar logic at 50ms frequency
     loadingInterval = setInterval(() => {
         if (percent < 95) {
-            percent += 0.35 + Math.random() * 0.15;
+            percent += 0.16 + Math.random() * 0.08;
             if (percent > 95) percent = 95;
             
             const rounded = Math.round(percent);
@@ -187,7 +187,7 @@ function animateLoadingSteps() {
                 }
             }
         }
-    }, 100);
+    }, 50);
 }
 
 function completeLoadingAnimation(callback) {
@@ -198,19 +198,70 @@ function completeLoadingAnimation(callback) {
     const countdownEl = document.getElementById("countdownSeconds");
     const steps = document.querySelectorAll(".loading-step");
     
-    if (percentEl) percentEl.textContent = "100%";
-    if (countdownEl) countdownEl.textContent = "0";
+    let startPercent = 25;
+    if (percentEl) {
+        startPercent = parseInt(percentEl.textContent) || 25;
+    }
+    
+    let startSeconds = 25;
+    if (countdownEl) {
+        startSeconds = parseInt(countdownEl.textContent) || 25;
+    }
+    
+    const duration = 1200; // Smooth 1.2s ease-out to reach 100%
+    const startTime = performance.now();
+    
     if (ringFill) {
-        ringFill.style.transition = "stroke-dashoffset 0.4s cubic-bezier(0.1, 0.8, 0.3, 1)";
+        ringFill.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.1, 0.76, 0.55, 0.94)`;
         ringFill.style.strokeDashoffset = "0";
     }
     
-    steps.forEach(s => {
-        s.classList.remove("active");
-        s.classList.add("done");
-    });
+    function update(now) {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Eased percentage calculation (cubic ease out)
+        const easeProgress = 1 - Math.pow(1 - progress, 3);
+        const currentPercent = Math.round(startPercent + (100 - startPercent) * easeProgress);
+        const currentSeconds = Math.round(startSeconds * (1 - easeProgress));
+        
+        if (percentEl) percentEl.textContent = currentPercent + "%";
+        if (countdownEl) countdownEl.textContent = currentSeconds;
+        
+        const totalSteps = steps.length;
+        let stepIndex = 0;
+        if (currentPercent >= 90) stepIndex = 6;
+        else if (currentPercent >= 75) stepIndex = 5;
+        else if (currentPercent >= 60) stepIndex = 4;
+        else if (currentPercent >= 45) stepIndex = 3;
+        else if (currentPercent >= 30) stepIndex = 2;
+        else if (currentPercent >= 15) stepIndex = 1;
+        else stepIndex = 0;
+        
+        for (let idx = 0; idx < totalSteps; idx++) {
+            if (idx < stepIndex) {
+                steps[idx].classList.remove("active");
+                steps[idx].classList.add("done");
+            } else if (idx === stepIndex) {
+                steps[idx].classList.remove("done");
+                steps[idx].classList.add("active");
+            } else {
+                steps[idx].classList.remove("active", "done");
+            }
+        }
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        } else {
+            steps.forEach(s => {
+                s.classList.remove("active");
+                s.classList.add("done");
+            });
+            setTimeout(callback, 300);
+        }
+    }
     
-    setTimeout(callback, 500);
+    requestAnimationFrame(update);
 }
 
 /* ── RENDER RESULTS ── */
