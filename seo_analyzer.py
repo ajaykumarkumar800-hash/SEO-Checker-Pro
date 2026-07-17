@@ -2655,14 +2655,16 @@ class SEOAnalyzer:
         def fetch_strategy(strategy):
             d = {}
             perf_score = None
+            error_reason = None
             
             # Check if domain is test-only to bypass slow network calls during automated testing
             is_test = "example.com" in self.url or "localhost" in self.url or "127.0.0.1" in self.url
             
+            import os
+            api_key = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+            
             if not is_test:
                 try:
-                    import os
-                    api_key = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
                     import urllib.parse
                     encoded_url = urllib.parse.quote(self.url)
                     api_url = (
@@ -2706,9 +2708,13 @@ class SEOAnalyzer:
                                 "data_source": "Google PageSpeed Insights API (Live)"
                             }
                     else:
+                        error_reason = f"HTTP {resp.status_code}"
                         safe_log(f"PageSpeed API {strategy} failed with status {resp.status_code}: {resp.text}")
                 except Exception as pe:
+                    error_reason = f"Error: {str(pe)[:30]}"
                     safe_log(f"PageSpeed API {strategy} run failed with exception: {str(pe)}")
+            else:
+                error_reason = "Bypassed during automated testing"
 
             # Fallback to highly accurate and realistic local auditing metrics tailored to strategy
             if perf_score is None:
@@ -2757,10 +2763,15 @@ class SEOAnalyzer:
                 )
                 perf_score = max(10, min(100, perf_score))
 
+                if not api_key:
+                    source_reason = "API Key not configured in Vercel env"
+                else:
+                    source_reason = error_reason or "Unknown API failure"
+
                 d = {
                     "performance_score": perf_score,
                     "strategy": strategy,
-                    "data_source": "Local Page Auditing (Real-time Fallback)",
+                    "data_source": f"Local Page Auditing (Real-time Fallback - {source_reason})",
                     "metrics": {
                         "FCP": {"value": f"{fcp_val}s", "score": fcp_score},
                         "LCP": {"value": f"{lcp_val}s", "score": lcp_score},
