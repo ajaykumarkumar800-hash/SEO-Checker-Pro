@@ -29,7 +29,11 @@ function startAnalysis() {
 
     fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+        },
         body: JSON.stringify({ url, keyword, website_category: category }),
     })
     .then(r => {
@@ -1301,7 +1305,11 @@ function startComparison() {
 
     fetch("/api/compare", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+        },
         body: JSON.stringify({ url1, url2 }),
     })
     .then(r => r.json())
@@ -1462,7 +1470,11 @@ function analyzeGSCRawData() {
     
     fetch("/api/gsc-live-audit", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+        },
         body: JSON.stringify({ urls: urls })
     })
     .then(r => r.json())

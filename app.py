@@ -195,6 +195,15 @@ if mongo_uri:
 app = Flask(__name__)
 
 
+@app.after_request
+def add_header(response):
+    """Force disable caching for all API responses to ensure fresh audits."""
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, private, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 @app.route("/")
 def launch():
     """Serve the welcome launching page."""
