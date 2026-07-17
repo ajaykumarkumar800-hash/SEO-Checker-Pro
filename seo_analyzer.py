@@ -2670,7 +2670,7 @@ class SEOAnalyzer:
                     if api_key:
                         api_url += f"&key={api_key}"
                         
-                    resp = requests.get(api_url, timeout=25)
+                    resp = requests.get(api_url, timeout=10)
                     if resp.status_code == 200:
                         data = resp.json()
                         lighthouse = data.get("lighthouseResult", {})
