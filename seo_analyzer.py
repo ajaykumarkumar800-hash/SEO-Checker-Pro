@@ -2661,11 +2661,16 @@ class SEOAnalyzer:
             
             if not is_test:
                 try:
+                    import os
+                    api_key = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
                     api_url = (
                         f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
                         f"?url={self.url}&strategy={strategy}&category=performance"
                     )
-                    resp = requests.get(api_url, timeout=20)
+                    if api_key:
+                        api_url += f"&key={api_key}"
+                        
+                    resp = requests.get(api_url, timeout=25)
                     if resp.status_code == 200:
                         data = resp.json()
                         lighthouse = data.get("lighthouseResult", {})
@@ -2698,8 +2703,10 @@ class SEOAnalyzer:
                                 "metrics": metrics,
                                 "data_source": "Google PageSpeed Insights API (Live)"
                             }
-                except Exception:
-                    pass
+                    else:
+                        safe_log(f"PageSpeed API {strategy} failed with status {resp.status_code}: {resp.text}")
+                except Exception as pe:
+                    safe_log(f"PageSpeed API {strategy} run failed with exception: {str(pe)}")
 
             # Fallback to highly accurate and realistic local auditing metrics tailored to strategy
             if perf_score is None:

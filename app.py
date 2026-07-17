@@ -4,6 +4,15 @@ SEO Checker Pro — Flask Application
 
 import os
 import sys
+
+# Try to load local environment variables from .env if present
+if os.path.exists(".env"):
+    with open(".env") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ[k.strip()] = v.strip().strip('"').strip("'")
 from flask import Flask, render_template, request, jsonify
 from seo_analyzer import SEOAnalyzer
 from pymongo import MongoClient
