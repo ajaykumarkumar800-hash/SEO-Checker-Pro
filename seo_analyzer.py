@@ -2663,9 +2663,11 @@ class SEOAnalyzer:
                 try:
                     import os
                     api_key = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+                    import urllib.parse
+                    encoded_url = urllib.parse.quote(self.url)
                     api_url = (
                         f"https://www.googleapis.com/pagespeedonline/v5/runPagespeed"
-                        f"?url={self.url}&strategy={strategy}&category=performance"
+                        f"?url={encoded_url}&strategy={strategy}&category=performance"
                     )
                     if api_key:
                         api_url += f"&key={api_key}"
