@@ -13,7 +13,7 @@ if os.path.exists(".env"):
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
                 os.environ[k.strip()] = v.strip().strip('"').strip("'")
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect
 from seo_analyzer import SEOAnalyzer
 from pymongo import MongoClient
 
@@ -204,6 +204,15 @@ if mongo_uri:
 app = Flask(__name__)
 
 
+@app.before_request
+def redirect_www():
+    """Enforce canonical domain redirection from www to non-www."""
+    host = request.host
+    if host.startswith("www."):
+        # Redirect 301 (Permanent Redirect) for optimal search engine canonicalization
+        return redirect("https://" + host[4:] + request.full_path, code=301)
+
+
 @app.after_request
 def add_header(response):
     """Force disable caching and inject security headers for optimal SEO score."""
@@ -236,6 +245,17 @@ def sitemap():
   </url>
 </urlset>""", 200, {"Content-Type": "application/xml"}
 
+
+@app.route("/terms")
+def terms():
+    """Serve Terms of Service page."""
+    return render_template("terms.html")
+
+
+@app.route("/privacy")
+def privacy():
+    """Serve Privacy Policy page."""
+    return render_template("privacy.html")
 
 
 @app.route("/")
