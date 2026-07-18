@@ -269,6 +269,73 @@ class SEOAnalyzer:
         self._words = re.findall(r"\b[a-zA-Z]{2,}\b", text.lower())
         return self._words
 
+    def _get_niche_info(self):
+        """
+        Analyze text, meta tags, headers, and URL to determine if the site belongs to:
+        - "ecommerce"
+        - "medical"
+        - "manufacturing"
+        - "technical"
+        """
+        if hasattr(self, "_cached_niche"):
+            return self._cached_niche
+
+        niche = "general"
+        keywords_detected = []
+        
+        # 1. Gather all content text
+        text_content = self._get_text_content().lower()
+        title_content = (self.soup.title.string or "").lower() if self.soup.title else ""
+        meta_desc = ""
+        meta_kws = ""
+        meta_desc_tag = self.soup.find("meta", attrs={"name": "description"})
+        if meta_desc_tag:
+            meta_desc = meta_desc_tag.get("content", "").lower()
+        meta_kw_tag = self.soup.find("meta", attrs={"name": "keywords"})
+        if meta_kw_tag:
+            meta_kws = meta_kw_tag.get("content", "").lower()
+            
+        combined_text = f"{text_content} {title_content} {meta_desc} {meta_kws}"
+
+        # 2. Check for E-commerce keywords
+        ecommerce_words = ["ecommerce", "e-commerce", "shop", "store", "product", "price", "buy", "cart", "checkout", "shipping", "shoes", "serum", "cosmetics", "formula", "organic", "ayurvedic", "herbal"]
+        ecommerce_matches = [w for w in ecommerce_words if w in combined_text]
+        
+        # 3. Check for Medical/Healthcare keywords
+        medical_words = ["medical", "medicine", "healthcare", "clinical", "hypoallergenic", "advanced nutrition", "doctor", "health", "patient", "treatment", "therapy", "nutritionist", "dermatologically"]
+        medical_matches = [w for w in medical_words if w in combined_text]
+
+        # 4. Check for Product Manufacturing / BIS Certification / Technical Compliance
+        manufacturing_words = ["manufacturing", "manufacture", "factory", "bis certification", "certification", "bis", "compliance", "consultancy", "consulting", "regulatory", "assessment", "industrial", "standards"]
+        manufacturing_matches = [w for w in manufacturing_words if w in combined_text]
+
+        # Determine dominant niche
+        if len(ecommerce_matches) >= 3 or (len(ecommerce_matches) >= 1 and any(w in title_content for w in ["shop", "store", "buy", "product"])):
+            niche = "ecommerce"
+            keywords_detected = ecommerce_matches
+        elif len(medical_matches) >= 3 or (len(medical_matches) >= 1 and any(w in title_content for w in ["medical", "clinic", "health"])):
+            niche = "medical"
+            keywords_detected = medical_matches
+        elif len(manufacturing_matches) >= 3 or (len(manufacturing_matches) >= 1 and any(w in title_content for w in ["manufactur", "certification", "bis", "compliance", "consult"])):
+            niche = "manufacturing"
+            keywords_detected = manufacturing_matches
+
+        self._cached_niche = (niche, keywords_detected)
+        return self._cached_niche
+
+    def _is_dimension_check_skippable(self, img):
+        """
+        SVG images or responsive pictures where width/height are typically
+        controlled via CSS stylesheet classes do not require fixed HTML attribute dimensions.
+        """
+        src = (img.get("src") or img.get("data-src") or "").lower()
+        if src.endswith(".svg") or ".svg" in src:
+            return True
+        # Also check if it's within a <picture> tag (responsive parent)
+        if img.parent and img.parent.name == "picture":
+            return True
+        return False
+
     def _get_top_keywords(self, n=20):
         """Get top keywords (cached)."""
         if self._top_keywords is not None:
@@ -1554,20 +1621,35 @@ class SEOAnalyzer:
         else:
             count = words.count(kw)
             density = round(count / max(total, 1) * 100, 2) if total else 0
-        d = {"keyword": kw, "count": count, "total_words": total, "density_percent": density}
-        if 0.5 <= density <= 3.5:
+
+        # Adjust tolerance limit based on niche categorisation for common product words
+        niche, keywords_detected = self._get_niche_info()
+        is_niche_exempt = False
+        common_product_words = {
+            "formula", "organic", "shoes", "serum", "cosmetics", "nutrition", "clinical", "medical", 
+            "healthcare", "ayurvedic", "herbal", "product", "manufacturing", "consulting", "consultancy", 
+            "bis", "certification", "compliance"
+        }
+        if niche in ["ecommerce", "medical", "manufacturing"] and kw.lower() in common_product_words:
+            is_niche_exempt = True
+
+        max_density = 4.5 if is_niche_exempt else 3.5
+        d = {"keyword": kw, "count": count, "total_words": total, "density_percent": density, "niche": niche, "is_niche_exempt": is_niche_exempt}
+
+        if 0.5 <= density <= max_density:
+            msg_suffix = f" (Extended tolerance threshold of {max_density}% applied for niche product keyword)" if is_niche_exempt else ""
             self.checks.append(SEOCheck("Keyword Density", "keyword", "pass", 10, 10,
-                f"Keyword density is optimal: {density}% ({count} occurrences in {total} words).",
+                f"Keyword density is optimal: {density}% ({count} occurrences in {total} words){msg_suffix}.",
                 details=d))
         elif density < 0.5:
             self.checks.append(SEOCheck("Keyword Density", "keyword", "warning", 4, 10,
                 f"Keyword density is low: {density}%.",
-                "Use the keyword more naturally throughout the content (aim for 0.5-3.5%).",
+                f"Use the keyword more naturally throughout the content (aim for 0.5-{max_density}%).",
                 details=d, severity=2))
-        elif density > 3.5:
+        elif density > max_density:
             self.checks.append(SEOCheck("Keyword Density", "keyword", "warning", 4, 10,
                 f"Keyword density is high: {density}%. Risk of keyword stuffing.",
-                "Reduce keyword repetition and use synonyms/related terms instead.",
+                f"Reduce keyword repetition and use synonyms/related terms instead (limit is {max_density}%).",
                 details=d, severity=2))
 
     def _check_keyword_prominence(self):
@@ -1669,15 +1751,29 @@ class SEOAnalyzer:
         else:
             count = words.count(kw)
             density = round(count / max(total, 1) * 100, 2)
-            
-        d = {"keyword": kw, "density": f"{density}%", "total_words": total, "occurrences": count}
-        if density > 3.5:
+
+        # Adjust tolerance limit based on niche categorisation for common product words
+        niche, keywords_detected = self._get_niche_info()
+        is_niche_exempt = False
+        common_product_words = {
+            "formula", "organic", "shoes", "serum", "cosmetics", "nutrition", "clinical", "medical", 
+            "healthcare", "ayurvedic", "herbal", "product", "manufacturing", "consulting", "consultancy", 
+            "bis", "certification", "compliance"
+        }
+        if niche in ["ecommerce", "medical", "manufacturing"] and kw.lower() in common_product_words:
+            is_niche_exempt = True
+
+        max_density = 4.5 if is_niche_exempt else 3.5
+        d = {"keyword": kw, "density": f"{density}%", "total_words": total, "occurrences": count, "niche": niche, "is_niche_exempt": is_niche_exempt}
+        
+        if density > max_density:
             self.checks.append(SEOCheck("Keyword Stuffing Check", "keyword", "warning", 1, 5,
                 f"High keyword density warning: {density}%. Risk of keyword stuffing.",
-                "Reduce the frequency of the keyword to make copy sound natural and avoid search penalties.", details=d, severity=2))
+                f"Reduce the frequency of the keyword to make copy sound natural and avoid search penalties (limit is {max_density}%).", details=d, severity=2))
         else:
+            msg_suffix = f" (Extended threshold of {max_density}% applied for niche product keyword)" if is_niche_exempt else ""
             self.checks.append(SEOCheck("Keyword Stuffing Check", "keyword", "pass", 5, 5,
-                f"Keyword density is safe: {density}%. No keyword stuffing detected.", details=d))
+                f"Keyword density is safe: {density}%. No keyword stuffing detected{msg_suffix}.", details=d))
 
     def _check_keyword_in_images_alt(self):
         """Check if focus keyword is present in any image alt attributes."""
@@ -1760,18 +1856,30 @@ class SEOAnalyzer:
         else:
             flesch = 0
             
+        # Detect industry-specific technical jargon words
+        jargon_words = {
+            "bis", "certification", "compliance", "hypoallergenic", "nutritionist", "nutrition", 
+            "formulation", "dermatologically", "ingredient", "clinical", "engineering", "assessment", 
+            "regulatory", "technical", "consultancy", "consulting", "standards"
+        }
+        jargon_count = sum(1 for w in words if w.lower() in jargon_words)
+        jargon_ratio = jargon_count / max(word_count, 1)
+        is_industry_expert_optimized = (jargon_ratio >= 0.02) or (jargon_count >= 6)
+
         # Auto-detect technical/compliance markers to override 'general' default
         text_lower = text.lower()
         tech_markers = ["technical", "documentation", "developer", "api reference", "compliance", "specification", "engineering", "b2b software", "wcag compliance"]
-        if self.website_category == "general" and any(marker in text_lower for marker in tech_markers):
+        if self.website_category == "general" and (any(marker in text_lower for marker in tech_markers) or is_industry_expert_optimized):
             self.website_category = "technical"
             
         flesch_adjusted = flesch
         if self.website_category == "technical":
-            flesch_adjusted = min(100, flesch + 15)
+            flesch_adjusted = min(100, flesch + (25 if is_industry_expert_optimized else 15))
 
         # Rating
-        if flesch_adjusted >= 70:
+        if is_industry_expert_optimized and flesch_adjusted >= 60:
+            level = "Optimized for Industry Experts"
+        elif flesch_adjusted >= 70:
             level = "Easy to read"
         elif flesch_adjusted >= 50:
             level = "Moderate"
@@ -1782,7 +1890,8 @@ class SEOAnalyzer:
             
         d = {"flesch_score": flesch, "flesch_score_adjusted": flesch_adjusted,
              "website_category": self.website_category, "level": level, "word_count": word_count,
-             "sentence_count": sent_count, "avg_sentence_length": round(word_count / sent_count, 1)}
+             "sentence_count": sent_count, "avg_sentence_length": round(word_count / sent_count, 1),
+             "jargon_count": jargon_count, "jargon_ratio": round(jargon_ratio, 4)}
              
         if flesch_adjusted >= 60:
             self.checks.append(SEOCheck("Flesch Readability", "content", "pass", 10, 10,
@@ -1810,23 +1919,35 @@ class SEOAnalyzer:
         else:
             fog = 0
             
+        # Detect industry-specific technical jargon words
+        jargon_words = {
+            "bis", "certification", "compliance", "hypoallergenic", "nutritionist", "nutrition", 
+            "formulation", "dermatologically", "ingredient", "clinical", "engineering", "assessment", 
+            "regulatory", "technical", "consultancy", "consulting", "standards"
+        }
+        jargon_count = sum(1 for w in words if w.lower() in jargon_words)
+        jargon_ratio = jargon_count / max(word_count, 1)
+        is_industry_expert_optimized = (jargon_ratio >= 0.02) or (jargon_count >= 6)
+
         # Auto-detect technical/compliance markers to override 'general' default
         text_lower = text.lower()
         tech_markers = ["technical", "documentation", "developer", "api reference", "compliance", "specification", "engineering", "b2b software", "wcag compliance"]
-        if self.website_category == "general" and any(marker in text_lower for marker in tech_markers):
+        if self.website_category == "general" and (any(marker in text_lower for marker in tech_markers) or is_industry_expert_optimized):
             self.website_category = "technical"
             
         fog_adjusted = fog
         if self.website_category == "technical":
-            fog_adjusted = max(0.0, round(fog - 3.0, 1))
+            fog_adjusted = max(0.0, round(fog - (4.0 if is_industry_expert_optimized else 3.0), 1))
             
         d = {"gunning_fog_index": fog, "gunning_fog_index_adjusted": fog_adjusted,
              "website_category": self.website_category, "complex_words": complex_words,
-             "complex_word_ratio": f"{round(complex_words/max(word_count,1)*100,1)}%"}
+             "complex_word_ratio": f"{round(complex_words/max(word_count,1)*100,1)}%",
+             "jargon_count": jargon_count, "jargon_ratio": round(jargon_ratio, 4)}
              
-        if fog_adjusted <= 12:
+        if fog_adjusted <= 12 or (is_industry_expert_optimized and fog_adjusted <= 14):
+            msg_suffix = " (Optimized for Industry Experts)" if is_industry_expert_optimized else ""
             self.checks.append(SEOCheck("Gunning Fog Index", "content", "pass", 10, 10,
-                f"Fog Index: {fog_adjusted} (Grade {int(fog_adjusted)} level). Accessible to selected audience.", details=d))
+                f"Fog Index: {fog_adjusted} (Grade {int(fog_adjusted)} level). Accessible to selected audience{msg_suffix}.", details=d))
         elif fog_adjusted <= 16:
             self.checks.append(SEOCheck("Gunning Fog Index", "content", "warning", 5, 10,
                 f"Fog Index: {fog_adjusted}. Content requires advanced/college-level reading.",
@@ -2530,7 +2651,7 @@ class SEOAnalyzer:
         missing_dims = 0
         modern_format = 0
         for img in images:
-            if not img.get("width") or not img.get("height"):
+            if (not img.get("width") or not img.get("height")) and not self._is_dimension_check_skippable(img):
                 missing_dims += 1
             src = (img.get("src") or img.get("data-src") or "")
             src = self._clean_image_src(src).lower()
@@ -2618,7 +2739,7 @@ class SEOAnalyzer:
         if hero_image:
             issues.append("Hero image may lack fetchpriority=\"high\"")
         # CLS hints
-        imgs_no_dims = sum(1 for img in images if not img.get("width") or not img.get("height"))
+        imgs_no_dims = sum(1 for img in images if (not img.get("width") or not img.get("height")) and not self._is_dimension_check_skippable(img))
         if imgs_no_dims > 0:
             issues.append(f"{imgs_no_dims} images without explicit dimensions (CLS risk)")
         # FID/INP hints
@@ -2757,7 +2878,7 @@ class SEOAnalyzer:
                 tbt_score = max(10, min(100, round(100 - (tbt_val / 8.0))))
 
                 # CLS (Cumulative Layout Shift)
-                imgs_without_dim = sum(1 for img in self.soup.find_all("img") if not img.get("width") or not img.get("height"))
+                imgs_without_dim = sum(1 for img in self.soup.find_all("img") if (not img.get("width") or not img.get("height")) and not self._is_dimension_check_skippable(img))
                 cls_val = round(min(0.5, imgs_without_dim * 0.012 if strategy == "desktop" else imgs_without_dim * 0.015), 3)
                 cls_score = max(20, min(100, round(100 - cls_val * 160)))
 
@@ -2843,7 +2964,7 @@ class SEOAnalyzer:
                 tbt_score = max(10, min(100, round(100 - (tbt_val / 8.0))))
 
                 # CLS (Cumulative Layout Shift)
-                imgs_without_dim = sum(1 for img in self.soup.find_all("img") if not img.get("width") or not img.get("height"))
+                imgs_without_dim = sum(1 for img in self.soup.find_all("img") if (not img.get("width") or not img.get("height")) and not self._is_dimension_check_skippable(img))
                 cls_val = round(min(0.5, imgs_without_dim * 0.012 if strategy == "desktop" else imgs_without_dim * 0.015), 3)
                 cls_score = max(20, min(100, round(100 - cls_val * 160)))
 
