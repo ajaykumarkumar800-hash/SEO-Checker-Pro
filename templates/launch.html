@@ -113,26 +113,74 @@
         .feature-card:hover { background: rgba(255, 255, 255, 0.08); }
         .feature-num { font-size: 1.6rem; font-weight: 800; color: #7c3aed; margin-bottom: 6px; }
         .feature-label { font-size: 0.78rem; color: #94a3b8; font-weight: 500; }
+        .seo-education-section {
+            margin-top: 48px;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 30px;
+        }
+        .seo-education-section h2 {
+            font-size: 1.4rem;
+            margin-bottom: 16px;
+            color: #fff;
+            background: none;
+            -webkit-text-fill-color: initial;
+        }
+        .seo-education-section h3 {
+            font-size: 1.05rem;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            color: #fff;
+            background: none;
+            -webkit-text-fill-color: initial;
+            font-weight: 600;
+        }
+        .seo-education-section p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        .footer-launch {
+            margin-top: 40px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            padding-top: 20px;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+        .footer-launch a {
+            color: #94a3b8;
+            text-decoration: underline;
+            margin: 0 8px;
+        }
     </style>
 </head>
 <body>
     <a href="#main-content" class="skip-link" style="position:absolute; top:-40px; left:0; background:#000; color:#fff; padding:8px; z-index:100; transition: top 0.2s;" onfocus="this.style.top='0px'" onblur="this.style.top='-40px'">Skip to main content</a>
-    <div id="main-content" class="launch-container">
-        <div class="launch-logo">
-            <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="3">
-                <circle cx="18" cy="18" r="16"/>
-                <path d="M11 19L15.5 23.5L25 12.5" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-        </div>
-        <h1>SEO Checker Pro</h1>
-        <p class="subtitle">Enterprise-level website SEO analysis engine. 130+ real-time checks across 10 categories with actionable recommendations.</p>
-        <a href="/scanner" class="launch-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-            </svg>
-            Launch Scanner
-        </a>
-        <div class="features">
+    <main id="main-content" class="launch-container" role="main">
+        <header role="banner">
+            <div class="launch-logo">
+                <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true">
+                    <circle cx="18" cy="18" r="16"/>
+                    <path d="M11 19L15.5 23.5L25 12.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <h1>SEO Checker Pro</h1>
+            <p class="subtitle">Enterprise-level website SEO analysis engine. 130+ real-time checks across 10 categories with actionable recommendations.</p>
+        </header>
+
+        <nav role="navigation" aria-label="Launch Navigation" style="margin-bottom: 30px;">
+            <a href="/scanner" class="launch-btn" aria-label="Launch website SEO audit scanner">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20" aria-hidden="true">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                Launch Scanner
+            </a>
+        </nav>
+
+        <section class="features" aria-label="Tool Features">
             <div class="feature-card">
                 <div class="feature-num">130+</div>
                 <div class="feature-label">SEO Checks</div>
@@ -145,7 +193,37 @@
                 <div class="feature-num">100%</div>
                 <div class="feature-label">Real-Time</div>
             </div>
-        </div>
-    </div>
+        </section>
+
+        <!-- ── SEO EDUCATION ARTICLE (Resolves Word Count & Readability warnings) ── -->
+        <section class="seo-education-section" aria-label="SEO Audit Education Guide">
+            <h2>Complete Guide to Website Search Engine Optimization Auditing</h2>
+            <p>
+                Understanding website search engine optimization (SEO) is essential to grow your online visibility. Conducting regular, comprehensive website audits ensures that search engine crawlers can index your web pages accurately. An effective audit covers technical structures, page speed metrics, content relevance, mobile responsiveness, and link authority. Let us explore the critical pillars of modern website optimization.
+            </p>
+
+            <h3>1. On-Page Optimization and Keyword Relevance</h3>
+            <p>
+                On-page factors communicate the purpose of your website directly to search engines. Focus on creating unique, informative title tags (between 50–60 characters) and descriptive meta descriptions (between 120–160 characters) that naturally integrate your target keywords. Maintain a logical heading hierarchy by using a single H1 tag for the primary topic, followed sequentially by H2 and H3 subheadings. Including search engine terms within your first paragraph and alt image attributes helps build keyword prominence.
+            </p>
+
+            <h3>2. Technical SEO Infrastructure</h3>
+            <p>
+                A clean technical foundation is the prerequisite for ranking. Search engines rely on a self-referencing canonical tag on every page to prevent duplicate content indexation. Creating a structured sitemap.xml file and robots.txt directive directs crawler engines to prioritize valuable landing paths. Additionally, configure SSL redirection to enforce secure HTTPS connections, resolve canonical domain variations (redirecting non-WWW to WWW or vice versa), and serve semantic HTML tags rather than generic div containers.
+            </p>
+
+            <h3>3. PageSpeed and Performance Standards</h3>
+            <p>
+                Page speed and performance metrics are key ranking factors. Web pages must load quickly to retain users and satisfy Core Web Vitals. Focus on optimizing First Contentful Paint (FCP) and Largest Contentful Paint (LCP) by leveraging modern media formats, setting explicit widths and heights to prevent Cumulative Layout Shift (CLS), and minimizing render-blocking resources. Moving inline CSS blocks to external stylesheets and deferring non-critical JavaScript files are excellent methods to speed up first paint metrics.
+            </p>
+        </section>
+
+        <!-- Footer section -->
+        <footer class="footer-launch" role="contentinfo">
+            &copy; 2026 SEO Checker Pro. All rights reserved. 
+            <a href="/terms" aria-label="Terms of Service page">Terms of Service</a>
+            <a href="/privacy" aria-label="Privacy Policy page">Privacy Policy</a>
+        </footer>
+    </main>
 </body>
 </html>
