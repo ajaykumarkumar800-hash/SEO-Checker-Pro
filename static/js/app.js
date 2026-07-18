@@ -1710,88 +1710,100 @@ function checkAndTriggerClientSidePageSpeed(data) {
     
     strategiesToFetch.forEach(strategy => {
         const targetUrl = data.url;
-        let api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=${strategy}&category=performance`;
-        
         const apiKey = data.pagespeed_api_key || (currentReport && currentReport.pagespeed_api_key);
-        if (apiKey) {
-            api_url += `&key=${apiKey}`;
-        }
         
-        // AbortController with 60-second timeout to prevent infinite spinner on slow mobile queries
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000);
-        
-        fetch(api_url, { signal: controller.signal })
-            .then(res => {
-                clearTimeout(timeoutId);
-                if (res.status === 200) return res.json();
-                throw new Error(`Status ${res.status}`);
-            })
-            .then(resData => {
-                const lighthouse = resData.lighthouseResult || {};
-                const audits = lighthouse.audits || {};
-                const categories = lighthouse.categories || {};
-                const perfScore = Math.round((categories.performance || {}).score * 100);
-                
-                const metricMap = {
-                    "first-contentful-paint": "FCP",
-                    "largest-contentful-paint": "LCP",
-                    "total-blocking-time": "TBT",
-                    "cumulative-layout-shift": "CLS",
-                    "speed-index": "Speed Index",
-                    "interactive": "TTI"
-                };
-                
-                const metrics = {};
-                for (const [auditKey, label] of Object.entries(metricMap)) {
-                    const audit = audits[auditKey] || {};
-                    metrics[label] = {
-                        value: audit.displayValue || "N/A",
-                        score: Math.round((audit.score || 0) * 100)
+        function performFetch(useKey) {
+            let api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=${strategy}&category=performance`;
+            if (useKey && apiKey) {
+                api_url += `&key=${apiKey}`;
+            }
+            
+            // AbortController with 90-second timeout to prevent infinite spinner on slow mobile queries
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 90000);
+            
+            fetch(api_url, { signal: controller.signal })
+                .then(res => {
+                    clearTimeout(timeoutId);
+                    if (res.status === 200) return res.json();
+                    throw new Error(`Status ${res.status}`);
+                })
+                .then(resData => {
+                    const lighthouse = resData.lighthouseResult || {};
+                    const audits = lighthouse.audits || {};
+                    const categories = lighthouse.categories || {};
+                    const perfScore = Math.round((categories.performance || {}).score * 100);
+                    
+                    const metricMap = {
+                        "first-contentful-paint": "FCP",
+                        "largest-contentful-paint": "LCP",
+                        "total-blocking-time": "TBT",
+                        "cumulative-layout-shift": "CLS",
+                        "speed-index": "Speed Index",
+                        "interactive": "TTI"
                     };
-                }
-                
-                const checkName = `PageSpeed Insights (${strategy === 'mobile' ? 'Mobile' : 'Desktop'})`;
-                const check = (currentReport.checks.performance || []).find(c => c.name === checkName);
-                if (check) {
-                    check.details = {
+                    
+                    const metrics = {};
+                    for (const [auditKey, label] of Object.entries(metricMap)) {
+                        const audit = audits[auditKey] || {};
+                        metrics[label] = {
+                            value: audit.displayValue || "N/A",
+                            score: Math.round((audit.score || 0) * 100)
+                        };
+                    }
+                    
+                    const checkName = `PageSpeed Insights (${strategy === 'mobile' ? 'Mobile' : 'Desktop'})`;
+                    const check = (currentReport.checks.performance || []).find(c => c.name === checkName);
+                    if (check) {
+                        check.details = {
+                            performance_score: perfScore,
+                            strategy: strategy,
+                            metrics: metrics,
+                            data_source: `Google PageSpeed Insights API (Client-Side Live${useKey ? ' with key' : ' anonymous'})`
+                        };
+                        check.status = perfScore >= 90 ? "pass" : (perfScore >= 50 ? "warning" : "fail");
+                        check.score = perfScore >= 90 ? 10 : (perfScore >= 50 ? 5 : 2);
+                        check.message = `PageSpeed: ${perfScore}/100 (${strategy === 'mobile' ? 'Mobile' : 'Desktop'}). ${perfScore >= 90 ? 'Excellent' : (perfScore >= 50 ? 'Needs improvement' : 'Poor')} performance. [Google PageSpeed Insights API (Client-Side Live)]`;
+                    }
+                    
+                    // Update pageSpeedData first
+                    pageSpeedData[strategy] = {
                         performance_score: perfScore,
                         strategy: strategy,
                         metrics: metrics,
-                        data_source: "Google PageSpeed Insights API (Client-Side Live)"
+                        data_source: `Google PageSpeed Insights API (Client-Side Live${useKey ? ' with key' : ' anonymous'})`
                     };
-                    check.status = perfScore >= 90 ? "pass" : (perfScore >= 50 ? "warning" : "fail");
-                    check.score = perfScore >= 90 ? 10 : (perfScore >= 50 ? 5 : 2);
-                    check.message = `PageSpeed: ${perfScore}/100 (${strategy === 'mobile' ? 'Mobile' : 'Desktop'}). ${perfScore >= 90 ? 'Excellent' : (perfScore >= 50 ? 'Needs improvement' : 'Poor')} performance. [Google PageSpeed Insights API (Client-Side Live)]`;
-                }
-                
-                // Update pageSpeedData first
-                pageSpeedData[strategy] = {
-                    performance_score: perfScore,
-                    strategy: strategy,
-                    metrics: metrics,
-                    data_source: "Google PageSpeed Insights API (Client-Side Live)"
-                };
-                
-                // Recalculate scores and update full UI
-                recalculateAllScores();
-                renderScoreOverview(currentReport);
-                renderPageSpeed(currentReport);
-                renderCategoryOverview(currentReport.category_scores);
-                renderTabScores(currentReport.category_scores);
-                drawRadarChart(currentReport.category_scores);
-                buildPrintReport(currentReport);
-                saveUpdatedReportToHistory();
-            })
-            .catch(err => {
-                clearTimeout(timeoutId);
-                console.error(`Client-side PageSpeed ${strategy} fetch error:`, err);
-                // Turn off loading state on failure to fall back quietly
-                if (pageSpeedData && pageSpeedData[strategy]) {
-                    pageSpeedData[strategy].loading = false;
-                }
-                renderPageSpeed(currentReport);
-            });
+                    
+                    // Recalculate scores and update full UI
+                    recalculateAllScores();
+                    renderScoreOverview(currentReport);
+                    renderPageSpeed(currentReport);
+                    renderCategoryOverview(currentReport.category_scores);
+                    renderTabScores(currentReport.category_scores);
+                    drawRadarChart(currentReport.category_scores);
+                    buildPrintReport(currentReport);
+                    saveUpdatedReportToHistory();
+                })
+                .catch(err => {
+                    clearTimeout(timeoutId);
+                    console.error(`Client-side PageSpeed ${strategy} fetch error (useKey=${useKey}):`, err);
+                    
+                    if (useKey && apiKey) {
+                        // Retry anonymously
+                        console.log(`Retrying PageSpeed ${strategy} anonymously...`);
+                        performFetch(false);
+                    } else {
+                        // Turn off loading state on failure to fall back quietly
+                        if (pageSpeedData && pageSpeedData[strategy]) {
+                            pageSpeedData[strategy].loading = false;
+                        }
+                        renderPageSpeed(currentReport);
+                    }
+                });
+        }
+        
+        // Start by using key if available
+        performFetch(true);
     });
 }
 
