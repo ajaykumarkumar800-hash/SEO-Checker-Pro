@@ -21,8 +21,13 @@ try:
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
-
-
+def safe_log(msg):
+    try:
+        import sys
+        sys.stderr.write(msg + "\n")
+        sys.stderr.flush()
+    except Exception:
+        pass
 class SEOCheck:
     """Represents a single SEO check result."""
 
@@ -2662,6 +2667,7 @@ class SEOAnalyzer:
             
             import os
             api_key = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+            print(f"--- DIAGNOSTICS: API Key Exists = {bool(api_key)} ---")
             
             if not is_test:
                 try:
@@ -2675,6 +2681,7 @@ class SEOAnalyzer:
                         api_url += f"&key={api_key}"
                         
                     resp = requests.get(api_url, timeout=45)
+                    print(f"--- Google API Status Code: {resp.status_code} ---")
                     if resp.status_code == 200:
                         data = resp.json()
                         lighthouse = data.get("lighthouseResult", {})
@@ -2708,9 +2715,11 @@ class SEOAnalyzer:
                                 "data_source": "Google PageSpeed Insights API (Live)"
                             }
                     else:
+                        print(f"--- Google API Error Response: {resp.text[:300]} ---")
                         error_reason = f"HTTP {resp.status_code}"
                         safe_log(f"PageSpeed API {strategy} failed with status {resp.status_code}: {resp.text}")
                 except Exception as pe:
+                    print(f"--- Exception Occurred: {str(pe)} ---")
                     error_reason = f"Error: {str(pe)[:30]}"
                     safe_log(f"PageSpeed API {strategy} run failed with exception: {str(pe)}")
             else:
