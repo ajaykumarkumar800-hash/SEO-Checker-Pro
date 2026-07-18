@@ -1710,11 +1710,16 @@ function checkAndTriggerClientSidePageSpeed(data) {
     
     strategiesToFetch.forEach(strategy => {
         const targetUrl = data.url;
-        const api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=${strategy}&category=performance`;
+        let api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=${strategy}&category=performance`;
         
-        // AbortController with 30-second timeout to prevent infinite spinner
+        const apiKey = data.pagespeed_api_key || (currentReport && currentReport.pagespeed_api_key);
+        if (apiKey) {
+            api_url += `&key=${apiKey}`;
+        }
+        
+        // AbortController with 60-second timeout to prevent infinite spinner on slow mobile queries
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        const timeoutId = setTimeout(() => controller.abort(), 60000);
         
         fetch(api_url, { signal: controller.signal })
             .then(res => {

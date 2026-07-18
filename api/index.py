@@ -343,6 +343,7 @@ def analyze():
                 
         report["og_results"] = og_results
         report["keyword_results"] = keyword_results
+        report["pagespeed_api_key"] = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
         
         # Serialize and forcefully trigger a database insert if MongoDB is active
         global client, db, reports_collection
