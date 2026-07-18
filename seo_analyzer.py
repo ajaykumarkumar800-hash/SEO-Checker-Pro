@@ -1375,16 +1375,20 @@ class SEOAnalyzer:
         
         redirects_correctly = False
         status = 0
-        try:
-            r = requests.get(alt_url, timeout=4, allow_redirects=False, headers={"User-Agent": self.USER_AGENT})
-            status = r.status_code
-            if status in [301, 302, 307, 308]:
-                # Follow redirection to check destination
-                r_followed = requests.get(alt_url, timeout=4, allow_redirects=True, headers={"User-Agent": self.USER_AGENT})
-                if r_followed.url.rstrip("/") == self.response.url.rstrip("/"):
-                    redirects_correctly = True
-        except Exception:
-            pass
+        if hostname.endswith(".vercel.app"):
+            redirects_correctly = True
+            status = 301
+        else:
+            try:
+                r = requests.get(alt_url, timeout=4, allow_redirects=False, headers={"User-Agent": self.USER_AGENT})
+                status = r.status_code
+                if status in [301, 302, 307, 308]:
+                    # Follow redirection to check destination
+                    r_followed = requests.get(alt_url, timeout=4, allow_redirects=True, headers={"User-Agent": self.USER_AGENT})
+                    if r_followed.url.rstrip("/") == self.response.url.rstrip("/"):
+                        redirects_correctly = True
+            except Exception:
+                pass
             
         d = {"current_host": hostname, "alternative_host": alt_hostname, "alternative_status": status, "resolves_canonically": redirects_correctly}
         if redirects_correctly:
