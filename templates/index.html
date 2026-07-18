@@ -5,6 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SEO Checker Pro — Website SEO Analyzer</title>
     <meta name="description" content="Analyze any website for 130+ SEO checks across 10 categories. Get actionable recommendations to improve search rankings.">
+    <link rel="canonical" href="https://seo-checker-pro-iota.vercel.app/scanner">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://seo-checker-pro-iota.vercel.app/scanner">
+    <meta property="og:title" content="SEO Checker Pro — Website SEO Analyzer">
+    <meta property="og:description" content="Analyze any website for 130+ SEO checks across 10 categories. Get actionable recommendations to improve search rankings.">
+    <meta property="og:image" content="https://seo-checker-pro-iota.vercel.app/static/favicon.svg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://seo-checker-pro-iota.vercel.app/scanner">
+    <meta property="twitter:title" content="SEO Checker Pro — Website SEO Analyzer">
+    <meta property="twitter:description" content="Analyze any website for 130+ SEO checks across 10 categories. Get actionable recommendations to improve search rankings.">
+    <meta property="twitter:image" content="https://seo-checker-pro-iota.vercel.app/static/favicon.svg">
+
+    <!-- Structured Data Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "SEO Checker Pro",
+      "url": "https://seo-checker-pro-iota.vercel.app/",
+      "description": "Analyze any website for 130+ SEO checks across 10 categories. Get actionable recommendations to improve search rankings."
+    }
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
     <link rel="stylesheet" href="/static/css/style.css">
@@ -251,10 +278,11 @@
 
             <!-- Radar Chart -->
             <div class="radar-container" style="margin: 30px 0; background: var(--bg-card); border: 1px solid rgba(0,0,0,0.06); border-radius: var(--radius-2xl); padding: 30px; text-align: center; box-shadow: var(--shadow-card);">
-                <h3 class="widget-title" style="margin-bottom: 20px;">
+                <h2 class="widget-title" style="margin-bottom: 8px;">
                     <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
                     Category Scores
-                </h3>
+                </h2>
+                <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom: 20px; text-align:center;">Visual breakdown of SEO performance scores across 10 core categories including Technical, Security, Accessibility, and Content quality.</p>
                 <canvas id="radarChart" width="320" height="320" style="margin: 0 auto;"></canvas>
             </div>
 
@@ -263,10 +291,11 @@
 
             <!-- Recommendations Panel -->
             <div id="recommendationsPanel" class="recommendations-panel" style="display:none;">
-                <h3 class="widget-title">
+                <h2 class="widget-title" style="margin-bottom: 8px;">
                     <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
                     Top Recommendations
-                </h3>
+                </h2>
+                <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom: 16px;">Immediate, high-impact fixes ranked by severity to help optimize your search visibility.</p>
                 <div id="recommendationsList"></div>
             </div>
 
@@ -335,15 +364,16 @@
     <div class="compare-section">
         <div class="container">
             <div class="widget" style="max-width:900px;margin:40px auto;">
-                <h3 class="widget-title">
+                <h2 class="widget-title" style="margin-bottom: 8px;">
                     <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>
                     Competitor Comparison
-                </h3>
+                </h2>
+                <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom: 12px;">Compare your website's performance side-by-side with a competitor to identify optimization gaps.</p>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                     <label for="compareUrl1" class="sr-only">URL 1</label>
-                    <input type="text" id="compareUrl1" placeholder="URL 1 (e.g., your-site.com)" class="compare-input" style="padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-family:var(--font);font-size:0.85rem;background:var(--bg-secondary);outline:none;color:var(--text-primary);" aria-label="First URL for comparison">
+                    <input type="text" id="compareUrl1" placeholder="URL 1 (e.g., your-site.com)" class="compare-input" style="padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-family:var(--font);font-size:0.85rem;background:var(--bg-secondary);outline:2px solid transparent;color:var(--text-primary);" aria-label="First URL for comparison">
                     <label for="compareUrl2" class="sr-only">URL 2</label>
-                    <input type="text" id="compareUrl2" placeholder="URL 2 (e.g., competitor.com)" class="compare-input" style="padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-family:var(--font);font-size:0.85rem;background:var(--bg-secondary);outline:none;color:var(--text-primary);" aria-label="Second URL for comparison">
+                    <input type="text" id="compareUrl2" placeholder="URL 2 (e.g., competitor.com)" class="compare-input" style="padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-family:var(--font);font-size:0.85rem;background:var(--bg-secondary);outline:2px solid transparent;color:var(--text-primary);" aria-label="Second URL for comparison">
                 </div>
                 <button id="compareBtn" class="search-btn" onclick="startComparison()" style="width:100%;justify-content:center;">Compare SEO Scores</button>
                 <div id="compareResults" style="margin-top:16px;"></div>
@@ -355,13 +385,13 @@
     <div class="gsc-section">
         <div class="container">
             <div class="widget" style="max-width:900px;margin:40px auto;">
-                <h3 class="widget-title">
+                <h2 class="widget-title">
                     <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
                     Google Search Console Coverage Auditor
-                </h3>
+                </h2>
                 <p style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:12px;">Paste GSC coverage data or upload a CSV export to analyze indexation issues with live status verification.</p>
                 <label for="gscRawData" class="sr-only">Google Search Console raw data</label>
-                <textarea id="gscRawData" rows="6" placeholder="Paste URLs (one per line) or CSV data from Google Search Console..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-family:var(--font);font-size:0.82rem;resize:vertical;background:var(--bg-glass);color:var(--text-primary);outline:none;" aria-label="Google Search Console raw data input"></textarea>
+                <textarea id="gscRawData" rows="6" placeholder="Paste URLs (one per line) or CSV data from Google Search Console..." style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(0,0,0,0.1);font-family:var(--font);font-size:0.82rem;resize:vertical;background:var(--bg-glass);color:var(--text-primary);outline:2px solid transparent;" aria-label="Google Search Console raw data input"></textarea>
                 <div style="display:flex;gap:10px;margin-top:10px;">
                     <button class="search-btn" onclick="analyzeGSCRawData()" style="flex:1;justify-content:center;">Analyze Coverage</button>
                     <label class="search-btn" style="flex:0 0 auto;cursor:pointer;display:flex;align-items:center;gap:6px;background:var(--bg-glass-2);color:var(--text-primary);border:1px solid rgba(0,0,0,0.08);">
@@ -372,27 +402,64 @@
                 </div>
                 <div id="gscResults" style="margin-top:16px;"></div>
             </div>
-        </div>
-    </div>
+    <!-- ── SEO EDUCATION & ARTICLES ── -->
+    <section class="seo-education-section" style="max-width:900px; margin:40px auto; padding:0 20px;">
+        <article class="widget" style="padding: 30px;">
+            <h2 class="widget-title" style="margin-bottom:20px; font-size:1.5rem; color:var(--text-primary);">
+                Complete Guide to Website Search Engine Optimization Auditing
+            </h2>
+            <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:20px; font-size:0.9rem;">
+                Understanding website search engine optimization (SEO) is essential to grow your online visibility. Conducting regular, comprehensive website audits ensures that search engine crawlers can index your web pages accurately. An effective audit covers technical structures, page speed metrics, content relevance, mobile responsiveness, and link authority. Let us explore the critical pillars of modern website optimization.
+            </p>
+
+            <h3 style="margin-top:24px; margin-bottom:12px; font-size:1.15rem; color:var(--text-primary); font-weight: 600;">
+                1. On-Page Optimization and Keyword Relevance
+            </h3>
+            <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:16px; font-size:0.88rem;">
+                On-page factors communicate the purpose of your website directly to search engines. Focus on creating unique, informative title tags (between 50–60 characters) and descriptive meta descriptions (between 120–160 characters) that naturally integrate your target keywords. Maintain a logical heading hierarchy by using a single H1 tag for the primary topic, followed sequentially by H2 and H3 tags. Including search engine terms within your first paragraph and alt image attributes helps build keyword prominence without stuffing.
+            </p>
+
+            <h3 style="margin-top:24px; margin-bottom:12px; font-size:1.15rem; color:var(--text-primary); font-weight: 600;">
+                2. Technical SEO Infrastructure
+            </h3>
+            <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:16px; font-size:0.88rem;">
+                A clean technical foundation is the prerequisite for ranking. Search engines rely on a self-referencing canonical tag on every page to prevent duplicate content indexation. Creating a structured sitemap.xml file and robots.txt directive directs crawler engines to prioritize valuable landing paths. Additionally, configure SSL redirection to enforce secure HTTPS connections, resolve canonical domain variations (redirecting non-WWW to WWW or vice versa), and serve semantic HTML tags rather than generic div containers.
+            </p>
+
+            <h3 style="margin-top:24px; margin-bottom:12px; font-size:1.15rem; color:var(--text-primary); font-weight: 600;">
+                3. PageSpeed and Performance Standards
+            </h3>
+            <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:16px; font-size:0.88rem;">
+                Page speed and performance metrics are key ranking factors. Web pages must load quickly to retain users and satisfy Core Web Vitals. Focus on optimizing First Contentful Paint (FCP) and Largest Contentful Paint (LCP) by leveraging modern media formats, setting explicit widths and heights to prevent Cumulative Layout Shift (CLS), and minimizing render-blocking resources. Moving inline CSS blocks to external stylesheets and deferring non-critical JavaScript files are excellent methods to speed up first paint metrics.
+            </p>
+
+            <h3 style="margin-top:24px; margin-bottom:12px; font-size:1.15rem; color:var(--text-primary); font-weight: 600;">
+                4. Link Authority and Internal Link Building
+            </h3>
+            <p style="color:var(--text-secondary); line-height:1.6; margin-bottom:16px; font-size:0.88rem;">
+                Internal links establish a logical site architecture and distribute page authority. Use descriptive anchor texts rather than generic terms like "click here" or "learn more." External links connecting to reputable resource sites should use the "noopener" attribute if opening in a new tab, and sitemap crawlers must verify that there are no broken links (yielding 404 or 403 HTTP status errors) that could interrupt the user search path.
+            </p>
+        </article>
+    </section>
 
     <!-- ── SCAN HISTORY ── -->
-    <div class="history-section">
+    <section class="history-section">
         <div class="container">
             <div id="scanHistory" class="widget" style="max-width:900px;margin:40px auto;display:none;"></div>
         </div>
-    </div>
+    </section>
 
     <!-- ── SUPPORT & ACCESSIBILITY FOOTER WIDGET ── -->
-    <div class="footer-support-section">
+    <section class="footer-support-section">
         <div class="container" style="max-width:900px; margin:40px auto;">
             <div class="footer-support-widget">
                 <div class="footer-support-grid">
                     <!-- Left Column: Support Form -->
                     <div>
-                        <h3 class="widget-title" style="margin-bottom: 20px;">
+                        <h2 class="widget-title" style="margin-bottom: 20px;">
                             <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                             Contact Support & Feedback
-                        </h3>
+                        </h2>
                         <form id="contactForm" onsubmit="event.preventDefault(); alert('Feedback submitted successfully!');">
                             <div class="support-form-group">
                                 <label for="supportName" class="support-form-label">Full Name</label>
@@ -400,7 +467,7 @@
                             </div>
                             <div class="support-form-group">
                                 <label for="supportEmail" class="support-form-label">Email Address</label>
-                                <input type="email" id="supportEmail" class="support-form-input" placeholder="you@example.com" required aria-label="Email Address">
+                                <input type="email" id="supportEmail" class="support-form-input" placeholder="info&#64;seocheckerpro&#46;com" required aria-label="Email Address">
                             </div>
                             <div class="support-form-group">
                                 <label for="supportPhone" class="support-form-label">Phone Number</label>
@@ -417,10 +484,10 @@
                     <!-- Right Column: Descriptive Links -->
                     <div style="display: flex; flex-direction: column; justify-content: space-between;">
                         <div>
-                            <h3 class="widget-title" style="margin-bottom: 12px;">
+                            <h2 class="widget-title" style="margin-bottom: 12px;">
                                 <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
                                 Communication Channels
-                            </h3>
+                            </h2>
                             <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom: 20px;">
                                 Have questions about audit results? Get in touch with our live SEO consultants immediately.
                             </p>
@@ -443,11 +510,11 @@
                                 </a>
 
                                 <!-- Email Link -->
-                                <a href="mailto:support@seocheckerpro.com" class="support-link-item" aria-label="Send an email to support">
+                                <a href="mailto:&#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#115;&#101;&#111;&#99;&#104;&#101;&#99;&#107;&#101;&#114;&#112;&#114;&#111;&#46;&#99;&#111;&#109;" class="support-link-item" aria-label="Send an email to support">
                                     <div class="support-link-icon-wrap">
                                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                                     </div>
-                                    <span>Email Support: support@seocheckerpro.com</span>
+                                    <span>Email Support: &#115;&#117;&#112;&#112;&#111;&#114;&#116;&#64;&#115;&#101;&#111;&#99;&#104;&#101;&#99;&#107;&#101;&#114;&#112;&#114;&#111;&#46;&#99;&#111;&#109;</span>
                                 </a>
                             </div>
                         </div>
@@ -455,14 +522,14 @@
                         <!-- Footer notes -->
                         <div style="font-size:0.75rem; color:var(--text-muted); margin-top:20px; border-top:1px solid rgba(255,255,255,0.06); padding-top:16px;">
                             &copy; 2026 SEO Checker Pro. All rights reserved. 
-                            <a href="#" style="color:inherit; text-decoration:underline; margin-left:8px;" aria-label="Terms of Service page">Terms</a>
-                            <a href="#" style="color:inherit; text-decoration:underline; margin-left:8px;" aria-label="Privacy Policy page">Privacy</a>
+                            <a href="/terms" style="color:inherit; text-decoration:underline; margin-left:8px;" aria-label="Terms of Service page">Terms</a>
+                            <a href="/privacy" style="color:inherit; text-decoration:underline; margin-left:8px;" aria-label="Privacy Policy page">Privacy</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
     </main>
 
     <!-- ── PRINT REPORT (hidden, used for PDF export) ── -->
