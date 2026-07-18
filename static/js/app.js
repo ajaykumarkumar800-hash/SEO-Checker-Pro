@@ -287,6 +287,7 @@ function renderResults(data) {
         buildPrintReport(data);
     }, 400);
     saveToHistory(data);
+    checkAndTriggerClientSidePageSpeed(data);
 }
 function buildPrintReport(data) {
     try {
@@ -1185,6 +1186,31 @@ function togglePageSpeedStrategy(strategy) {
     const d = pageSpeedData[strategy];
     if (!d) return;
     
+    const isMobileActive = strategy === "mobile";
+    
+    // Render loading indicator if strategy is currently fetching client-side
+    if (d.loading) {
+        el.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <h3 class="widget-title" style="margin-bottom:0;">
+                    <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                    PageSpeed Insights
+                </h3>
+                <div style="display:flex; background:rgba(255,255,255,0.04); border-radius:12px; padding:2px;">
+                    <button onclick="togglePageSpeedStrategy('mobile')" style="border:none; background:${isMobileActive ? '#667eea' : 'transparent'}; color:${isMobileActive ? '#fff' : 'var(--text-secondary)'}; padding:4px 10px; font-size:0.72rem; font-weight:600; border-radius:10px; cursor:pointer; outline:none; transition: all 0.2s ease;">Mobile</button>
+                    <button onclick="togglePageSpeedStrategy('desktop')" style="border:none; background:${!isMobileActive ? '#667eea' : 'transparent'}; color:${!isMobileActive ? '#fff' : 'var(--text-secondary)'}; padding:4px 10px; font-size:0.72rem; font-weight:600; border-radius:10px; cursor:pointer; outline:none; transition: all 0.2s ease;">Desktop</button>
+                </div>
+            </div>
+            <div style="text-align:center; padding:30px; color:var(--text-muted);">
+                <div style="width:24px; height:24px; border:2px solid rgba(255,255,255,0.1); border-top:2px solid var(--accent-1); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 10px auto;"></div>
+                <span style="font-size:0.8rem; font-weight:600;">Fetching live official PageSpeed metrics from Google...</span>
+            </div>
+        `;
+        return;
+    }
+    
     const score = d.performance_score;
     const color = score >= 90 ? "#0cce6b" : (score >= 50 ? "#ffa400" : "#ff4e42");
     const dash = Math.round(283 * score / 100);
@@ -1206,8 +1232,6 @@ function togglePageSpeedStrategy(strategy) {
         }
         metricsHtml += '</div>';
     }
-    
-    const isMobileActive = strategy === "mobile";
     
     el.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
@@ -1655,4 +1679,195 @@ function showRateLimitOverlay() {
         wrapper.appendChild(overlay);
     }
 }
+
+function checkAndTriggerClientSidePageSpeed(data) {
+    const mobileCheck = (data.checks.performance || []).find(c => c.name === "PageSpeed Insights (Mobile)");
+    const desktopCheck = (data.checks.performance || []).find(c => c.name === "PageSpeed Insights (Desktop)");
+    
+    let needsMobile = mobileCheck && mobileCheck.details && mobileCheck.details.data_source && mobileCheck.details.data_source.includes("Local Page Auditing");
+    let needsDesktop = desktopCheck && desktopCheck.details && desktopCheck.details.data_source && desktopCheck.details.data_source.includes("Local Page Auditing");
+    
+    if (!needsMobile && !needsDesktop) return;
+    
+    if (needsMobile) {
+        if (!pageSpeedData) pageSpeedData = {};
+        if (!pageSpeedData.mobile) pageSpeedData.mobile = {};
+        pageSpeedData.mobile.loading = true;
+    }
+    if (needsDesktop) {
+        if (!pageSpeedData) pageSpeedData = {};
+        if (!pageSpeedData.desktop) pageSpeedData.desktop = {};
+        pageSpeedData.desktop.loading = true;
+    }
+    
+    // Render the loading state immediately
+    if (needsMobile) togglePageSpeedStrategy("mobile");
+    else if (needsDesktop) togglePageSpeedStrategy("desktop");
+    
+    const strategiesToFetch = [];
+    if (needsMobile) strategiesToFetch.push("mobile");
+    if (needsDesktop) strategiesToFetch.push("desktop");
+    
+    strategiesToFetch.forEach(strategy => {
+        const targetUrl = data.url;
+        const api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=${strategy}&category=performance`;
+        
+        fetch(api_url)
+            .then(res => {
+                if (res.status === 200) return res.json();
+                throw new Error(`Status ${res.status}`);
+            })
+            .then(resData => {
+                const lighthouse = resData.lighthouseResult || {};
+                const audits = lighthouse.audits || {};
+                const categories = lighthouse.categories || {};
+                const perfScore = Math.round((categories.performance || {}).score * 100);
+                
+                const metricMap = {
+                    "first-contentful-paint": "FCP",
+                    "largest-contentful-paint": "LCP",
+                    "total-blocking-time": "TBT",
+                    "cumulative-layout-shift": "CLS",
+                    "speed-index": "Speed Index",
+                    "interactive": "TTI"
+                };
+                
+                const metrics = {};
+                for (const [auditKey, label] of Object.entries(metricMap)) {
+                    const audit = audits[auditKey] || {};
+                    metrics[label] = {
+                        value: audit.displayValue || "N/A",
+                        score: Math.round((audit.score || 0) * 100)
+                    };
+                }
+                
+                const checkName = `PageSpeed Insights (${strategy === 'mobile' ? 'Mobile' : 'Desktop'})`;
+                const check = (currentReport.checks.performance || []).find(c => c.name === checkName);
+                if (check) {
+                    check.details = {
+                        performance_score: perfScore,
+                        strategy: strategy,
+                        metrics: metrics,
+                        data_source: "Google PageSpeed Insights API (Client-Side Live)"
+                    };
+                    check.result = perfScore >= 90 ? "pass" : (perfScore >= 50 ? "warning" : "fail");
+                    check.score = perfScore >= 90 ? 10 : (perfScore >= 50 ? 5 : 2);
+                    check.message = `PageSpeed: ${perfScore}/100 (${strategy === 'mobile' ? 'Mobile' : 'Desktop'}). ${perfScore >= 90 ? 'Excellent' : (perfScore >= 50 ? 'Needs improvement' : 'Poor')} performance. [Google PageSpeed Insights API (Client-Side Live)]`;
+                }
+                
+                // Recalculate scores and update UI
+                recalculateAllScores();
+                
+                // Update pageSpeedData
+                pageSpeedData[strategy] = {
+                    performance_score: perfScore,
+                    strategy: strategy,
+                    metrics: metrics,
+                    data_source: "Google PageSpeed Insights API (Client-Side Live)"
+                };
+                
+                // Re-render PageSpeed gauges, chart and report
+                renderPageSpeed(currentReport);
+                renderCategoryOverview(currentReport.category_scores);
+                renderTabScores(currentReport.category_scores);
+                drawRadarChart(currentReport.category_scores);
+                buildPrintReport(currentReport);
+                saveUpdatedReportToHistory();
+            })
+            .catch(err => {
+                console.error(`Client-side PageSpeed ${strategy} fetch error:`, err);
+                // Turn off loading state on failure to fall back quietly
+                if (pageSpeedData && pageSpeedData[strategy]) {
+                    pageSpeedData[strategy].loading = false;
+                }
+                renderPageSpeed(currentReport);
+            });
+    });
+}
+
+function recalculateAllScores() {
+    if (!currentReport) return;
+    
+    const categories = {
+        "on_page":        { "weight": 0.15 },
+        "technical":      { "weight": 0.13 },
+        "keyword":        { "weight": 0.13 },
+        "content":        { "weight": 0.10 },
+        "social":         { "weight": 0.08 },
+        "performance":    { "weight": 0.10 },
+        "resources":      { "weight": 0.08 },
+        "accessibility":  { "weight": 0.07 },
+        "security":       { "weight": 0.08 },
+        "links":          { "weight": 0.07 }
+    };
+    
+    let overall = 0;
+    
+    for (const [catKey, catInfo] of Object.entries(categories)) {
+        const catChecks = currentReport.checks[catKey] || [];
+        let totalScore = 0;
+        let maxScore = 0;
+        let passed = 0;
+        let warnings = 0;
+        let failed = 0;
+        let info = 0;
+        
+        catChecks.forEach(c => {
+            totalScore += c.score || 0;
+            maxScore += c.max_score || 0;
+            if (c.status === "pass") passed++;
+            else if (c.status === "warning") warnings++;
+            else if (c.status === "fail") failed++;
+            else if (c.status === "info") info++;
+        });
+        
+        const pct = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+        
+        if (currentReport.category_scores[catKey]) {
+            currentReport.category_scores[catKey].score = pct;
+            currentReport.category_scores[catKey].passed = passed;
+            currentReport.category_scores[catKey].warnings = warnings;
+            currentReport.category_scores[catKey].failed = failed;
+            currentReport.category_scores[catKey].info = info;
+        }
+        
+        overall += pct * catInfo.weight;
+    }
+    
+    overall = Math.round(overall);
+    currentReport.overall_score = overall;
+    
+    // Recalculate grade
+    let grade = "F";
+    if (overall >= 90) grade = "A+";
+    else if (overall >= 80) grade = "A";
+    else if (overall >= 70) grade = "B+";
+    else if (overall >= 60) grade = "B";
+    else if (overall >= 50) grade = "C";
+    else if (overall >= 40) grade = "D";
+    
+    currentReport.grade = grade;
+    
+    // Update the main score display in DOM
+    const scoreVal = document.getElementById("overallScoreVal");
+    if (scoreVal) scoreVal.textContent = overall;
+    const gradeVal = document.getElementById("overallGradeVal");
+    if (gradeVal) gradeVal.textContent = "Grade: " + grade;
+}
+
+function saveUpdatedReportToHistory() {
+    if (!currentReport) return;
+    try {
+        let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+        const index = history.findIndex(h => h.url === (currentReport.final_url || currentReport.url));
+        if (index !== -1) {
+            history[index].score = currentReport.overall_score;
+            history[index].grade = currentReport.grade;
+            localStorage.setItem("seo_scan_history", JSON.stringify(history));
+        }
+    } catch (e) {
+        console.error("Failed to update history:", e);
+    }
+}
+
 
