@@ -277,13 +277,15 @@
             <div id="gscDiagnosticsWidget" class="widget gsc-diagnostics-widget" style="display:none;"></div>
 
             <!-- Radar Chart -->
-            <div class="radar-container" style="margin: 30px 0; background: var(--bg-card); border: 1px solid rgba(0,0,0,0.06); border-radius: var(--radius-2xl); padding: 30px; text-align: center; box-shadow: var(--shadow-card);">
-                <h2 class="widget-title" style="margin-bottom: 8px;">
-                    <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
-                    Category Scores
-                </h2>
-                <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom: 20px; text-align:center;">Visual breakdown of SEO performance scores across 10 core categories including Technical, Security, Accessibility, and Content quality.</p>
-                <canvas id="radarChart" width="320" height="320" style="margin: 0 auto;"></canvas>
+            <div class="radar-container" style="margin: 30px 0; background: var(--bg-card); border: 1px solid rgba(0,0,0,0.06); border-radius: var(--radius-2xl); padding: 30px; box-shadow: var(--shadow-card); display: flex; align-items: center; justify-content: space-between;">
+                <div style="flex: 1; text-align: left; padding-right: 30px;">
+                    <h2 class="widget-title" style="margin-bottom: 12px; display: flex; align-items: center; gap: 10px; font-size: 1.25rem; background: none; -webkit-text-fill-color: initial; color: var(--text-primary);">
+                        <svg class="widget-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px; height:20px; color: var(--accent);"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5"/></svg>
+                        Category Scores
+                    </h2>
+                    <p style="font-size:0.85rem; color:var(--text-secondary); line-height: 1.6; margin-bottom: 0;">Visual breakdown of SEO performance scores across 10 core categories including Technical, Security, Accessibility, and Content quality.</p>
+                </div>
+                <canvas id="radarChart" width="320" height="320" style="margin: 0; flex: 0 0 auto;"></canvas>
             </div>
 
             <!-- Category Overview -->

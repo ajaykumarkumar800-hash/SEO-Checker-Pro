@@ -1487,6 +1487,21 @@ body {
         grid-column: span 1;
     }
     
+    .radar-container {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .radar-container div {
+        padding-right: 0 !important;
+        margin-bottom: 20px;
+        text-align: center !important;
+    }
+    
+    .radar-container div h2 {
+        justify-content: center;
+    }
+    
     .score-meta-grid {
         grid-template-columns: repeat(2, 1fr);
     }
