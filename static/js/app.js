@@ -1712,8 +1712,13 @@ function checkAndTriggerClientSidePageSpeed(data) {
         const targetUrl = data.url;
         const api_url = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&strategy=${strategy}&category=performance`;
         
-        fetch(api_url)
+        // AbortController with 30-second timeout to prevent infinite spinner
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        
+        fetch(api_url, { signal: controller.signal })
             .then(res => {
+                clearTimeout(timeoutId);
                 if (res.status === 200) return res.json();
                 throw new Error(`Status ${res.status}`);
             })
@@ -1750,15 +1755,12 @@ function checkAndTriggerClientSidePageSpeed(data) {
                         metrics: metrics,
                         data_source: "Google PageSpeed Insights API (Client-Side Live)"
                     };
-                    check.result = perfScore >= 90 ? "pass" : (perfScore >= 50 ? "warning" : "fail");
+                    check.status = perfScore >= 90 ? "pass" : (perfScore >= 50 ? "warning" : "fail");
                     check.score = perfScore >= 90 ? 10 : (perfScore >= 50 ? 5 : 2);
                     check.message = `PageSpeed: ${perfScore}/100 (${strategy === 'mobile' ? 'Mobile' : 'Desktop'}). ${perfScore >= 90 ? 'Excellent' : (perfScore >= 50 ? 'Needs improvement' : 'Poor')} performance. [Google PageSpeed Insights API (Client-Side Live)]`;
                 }
                 
-                // Recalculate scores and update UI
-                recalculateAllScores();
-                
-                // Update pageSpeedData
+                // Update pageSpeedData first
                 pageSpeedData[strategy] = {
                     performance_score: perfScore,
                     strategy: strategy,
@@ -1766,7 +1768,9 @@ function checkAndTriggerClientSidePageSpeed(data) {
                     data_source: "Google PageSpeed Insights API (Client-Side Live)"
                 };
                 
-                // Re-render PageSpeed gauges, chart and report
+                // Recalculate scores and update full UI
+                recalculateAllScores();
+                renderScoreOverview(currentReport);
                 renderPageSpeed(currentReport);
                 renderCategoryOverview(currentReport.category_scores);
                 renderTabScores(currentReport.category_scores);
@@ -1775,6 +1779,7 @@ function checkAndTriggerClientSidePageSpeed(data) {
                 saveUpdatedReportToHistory();
             })
             .catch(err => {
+                clearTimeout(timeoutId);
                 console.error(`Client-side PageSpeed ${strategy} fetch error:`, err);
                 // Turn off loading state on failure to fall back quietly
                 if (pageSpeedData && pageSpeedData[strategy]) {
@@ -1847,12 +1852,6 @@ function recalculateAllScores() {
     else if (overall >= 40) grade = "D";
     
     currentReport.grade = grade;
-    
-    // Update the main score display in DOM
-    const scoreVal = document.getElementById("overallScoreVal");
-    if (scoreVal) scoreVal.textContent = overall;
-    const gradeVal = document.getElementById("overallGradeVal");
-    if (gradeVal) gradeVal.textContent = "Grade: " + grade;
 }
 
 function saveUpdatedReportToHistory() {

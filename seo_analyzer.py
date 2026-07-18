@@ -21,6 +21,7 @@ try:
     PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     PLAYWRIGHT_AVAILABLE = False
+
 def safe_log(msg):
     try:
         import sys
@@ -28,6 +29,8 @@ def safe_log(msg):
         sys.stderr.flush()
     except Exception:
         pass
+
+
 class SEOCheck:
     """Represents a single SEO check result."""
 
