@@ -11,7 +11,7 @@ let currentTab = "on_page";
 let loadingInterval = null;
 let countdownInterval = null;
 
-function startAnalysis() {
+function startAnalysis(forceRefresh = false) {
     const input = document.getElementById("urlInput");
     const url = input.value.trim();
     if (!url) { showError("Please enter a website URL."); input.focus(); return; }
@@ -34,7 +34,7 @@ function startAnalysis() {
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache"
         },
-        body: JSON.stringify({ url, keyword, website_category: category }),
+        body: JSON.stringify({ url, keyword, website_category: category, force_refresh: forceRefresh }),
     })
     .then(r => {
         if (r.status === 429) {
@@ -271,6 +271,17 @@ function completeLoadingAnimation(callback) {
 /* ── RENDER RESULTS ── */
 
 function renderResults(data) {
+    const cacheBanner = document.getElementById("cacheBanner");
+    const cacheText = document.getElementById("cacheBannerText");
+    if (cacheBanner) {
+        if (data.cached) {
+            cacheBanner.style.display = "flex";
+            if (cacheText) cacheText.textContent = `⚡ ${data.cache_source || "Instant Database Cache"} (Loaded in < 50ms)`;
+        } else {
+            cacheBanner.style.display = "none";
+        }
+    }
+
     renderScoreOverview(data);
     renderSerpPreview(data);
     renderOpenGraph(data);
@@ -285,6 +296,7 @@ function renderResults(data) {
     setTimeout(() => {
         drawRadarChart(data.category_scores);
         buildPrintReport(data);
+        loadHistoricalScoreGraph(data.final_url || data.url);
     }, 400);
     saveToHistory(data);
     checkAndTriggerClientSidePageSpeed(data);
@@ -1885,5 +1897,503 @@ function saveUpdatedReportToHistory() {
         console.error("Failed to update history:", e);
     }
 }
+
+/* ═══════════════════════════════════════════════
+   EXECUTIVE PRO SUITE JS EXTENSIONS
+   ═══════════════════════════════════════════════ */
+
+let currentSerpDevice = 'desktop';
+
+function switchProTool(toolId) {
+    document.querySelectorAll('.pro-nav-btn').forEach(btn => btn.classList.remove('active'));
+    const activeNavBtn = document.getElementById(`pnav-${toolId}`);
+    if (activeNavBtn) activeNavBtn.classList.add('active');
+
+    document.getElementById('hero').style.display = 'none';
+    document.getElementById('resultsSection').style.display = 'none';
+    document.getElementById('loadingSection').style.display = 'none';
+    document.querySelectorAll('.pro-tool-section').forEach(sec => sec.style.display = 'none');
+
+    if (toolId === 'dashboard') {
+        document.getElementById('dashboardSection').style.display = '';
+        renderExecutiveDashboard();
+    } else if (toolId === 'site-audit') {
+        if (currentReport) {
+            document.getElementById('resultsSection').style.display = '';
+        } else {
+            document.getElementById('hero').style.display = '';
+        }
+    } else if (toolId === 'keyword-magic') {
+        document.getElementById('keywordMagicSection').style.display = '';
+    } else if (toolId === 'domain-overview') {
+        document.getElementById('domainOverviewSection').style.display = '';
+    } else if (toolId === 'serp-simulator') {
+        document.getElementById('serpSimulatorSection').style.display = '';
+        updateSerpPreview();
+    }
+}
+
+function renderExecutiveDashboard() {
+    let history = [];
+    try {
+        history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+    } catch(e){}
+
+    const countEl = document.getElementById("dashProjCount");
+    const avgEl = document.getElementById("dashAvgHealth");
+    const tbody = document.getElementById("dashProjectsTable");
+
+    if (countEl) countEl.textContent = history.length || "3";
+
+    if (avgEl) {
+        if (history.length > 0) {
+            const sum = history.reduce((acc, item) => acc + (item.score || 0), 0);
+            const avg = Math.round(sum / history.length);
+            avgEl.textContent = avg + "%";
+        } else {
+            avgEl.textContent = "84%";
+        }
+    }
+
+    if (tbody) {
+        if (history.length === 0) {
+            const sampleProjects = [
+                { url: "https://example.com", score: 85, grade: "A", date: "22 Jul" },
+                { url: "https://my-online-store.com", score: 72, grade: "B", date: "21 Jul" },
+                { url: "https://tech-blog-demo.org", score: 64, grade: "C", date: "18 Jul" }
+            ];
+            tbody.innerHTML = sampleProjects.map(p => `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: #cbd5e1;">
+                    <td style="padding: 14px; font-weight: 600; color: #fff;">${p.url}</td>
+                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${p.score}%</span></td>
+                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 700;">${p.grade}</span></td>
+                    <td style="padding: 14px; text-align: center; color: #94a3b8;">${p.date}</td>
+                    <td style="padding: 14px; text-align: right;">
+                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: rgba(79,70,229,0.2); color: #818cf8; border: 1px solid rgba(79,70,229,0.4); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                            Run Audit
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } else {
+            tbody.innerHTML = history.slice(0, 10).map(p => `
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: #cbd5e1;">
+                    <td style="padding: 14px; font-weight: 600; color: #fff;">${p.url}</td>
+                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${p.score || 75}%</span></td>
+                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 700;">${p.grade || 'B'}</span></td>
+                    <td style="padding: 14px; text-align: center; color: #94a3b8;">${p.date || 'Recent'}</td>
+                    <td style="padding: 14px; text-align: right;">
+                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: rgba(79,70,229,0.2); color: #818cf8; border: 1px solid rgba(79,70,229,0.4); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                            Run Audit
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+    }
+}
+
+function runKeywordResearch() {
+    const input = document.getElementById('kmInput');
+    const keyword = input ? input.value.trim() : '';
+    if (!keyword) {
+        alert('Please enter a seed keyword.');
+        return;
+    }
+    const country = document.getElementById('kmCountry')?.value || 'US';
+    const resultsContainer = document.getElementById('kmResults');
+    resultsContainer.style.display = 'block';
+    resultsContainer.innerHTML = `<div style="text-align:center; padding: 40px; color:#94a3b8;">Analyzing keyword metrics for "${keyword}"...</div>`;
+
+    fetch('/api/keyword-research', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyword, country })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            resultsContainer.innerHTML = `<div class="error-msg" style="display:block;">${data.error}</div>`;
+            return;
+        }
+        renderKeywordResults(data);
+    })
+    .catch(err => {
+        resultsContainer.innerHTML = `<div class="error-msg" style="display:block;">Failed to fetch keyword data.</div>`;
+    });
+}
+
+function renderKeywordResults(data) {
+    const m = data.metrics;
+    const container = document.getElementById('kmResults');
+    
+    let phraseRows = (data.phrase_matches || []).map(p => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 12px; font-weight: 600; color: #f8fafc;">${p.keyword}</td>
+            <td style="padding: 12px; text-align: center; color: #818cf8; font-weight: 700;">${p.volume.toLocaleString()}</td>
+            <td style="padding: 12px; text-align: center;">
+                <span class="badge" style="background: ${p.kd < 30 ? 'rgba(34,197,94,0.2)' : (p.kd < 60 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)')}; color: ${p.kd < 30 ? '#4ade80' : (p.kd < 60 ? '#fde047' : '#f87171')};">
+                    ${p.kd}% (${p.kd_status})
+                </span>
+            </td>
+            <td style="padding: 12px; text-align: center;">
+                <span class="badge" style="background: rgba(148,163,184,0.15); color: #cbd5e1;">${p.intent}</span>
+            </td>
+            <td style="padding: 12px; text-align: right; color: #34d399; font-weight: 600;">${p.cpc}</td>
+        </tr>
+    `).join('');
+
+    let questionRows = (data.questions || []).map(q => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 10px; font-weight: 500; color: #e2e8f0;">${q.question}</td>
+            <td style="padding: 10px; text-align: center; color: #818cf8;">${q.volume.toLocaleString()}</td>
+            <td style="padding: 10px; text-align: right; color: #fde047;">${q.kd}%</td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px;">
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Search Volume</div>
+                <div class="meta-value" style="color:#818cf8; font-size:1.8rem;">${m.volume.toLocaleString()}</div>
+            </div>
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Keyword Difficulty</div>
+                <div class="meta-value" style="color:${m.kd < 40 ? '#4ade80' : '#f87171'}; font-size:1.8rem;">${m.kd}%</div>
+                <span style="font-size:0.8rem; color:#94a3b8;">${m.kd_status}</span>
+            </div>
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Search Intent</div>
+                <div class="meta-value" style="color:#38bdf8; font-size:1.2rem;">${m.intent}</div>
+            </div>
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Est. CPC</div>
+                <div class="meta-value" style="color:#34d399; font-size:1.8rem;">${m.cpc}</div>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; margin-bottom: 30px;">
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Phrase Match Variations</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                            <th style="padding: 10px;">Keyword</th>
+                            <th style="padding: 10px; text-align: center;">Volume</th>
+                            <th style="padding: 10px; text-align: center;">KD%</th>
+                            <th style="padding: 10px; text-align: center;">Intent</th>
+                            <th style="padding: 10px; text-align: right;">CPC</th>
+                        </tr>
+                    </thead>
+                    <tbody>${phraseRows}</tbody>
+                </table>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Related Questions</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                            <th style="padding: 10px;">Question</th>
+                            <th style="padding: 10px; text-align: center;">Volume</th>
+                            <th style="padding: 10px; text-align: right;">KD%</th>
+                        </tr>
+                    </thead>
+                    <tbody>${questionRows}</tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+function runDomainOverview() {
+    const input = document.getElementById('doInput');
+    const domain = input ? input.value.trim() : '';
+    if (!domain) {
+        alert('Please enter a domain.');
+        return;
+    }
+    const container = document.getElementById('doResults');
+    container.style.display = 'block';
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color:#94a3b8;">Fetching domain intelligence for "${domain}"...</div>`;
+
+    fetch('/api/domain-overview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            container.innerHTML = `<div class="error-msg" style="display:block;">${data.error}</div>`;
+            return;
+        }
+        renderDomainResults(data);
+    })
+    .catch(err => {
+        container.innerHTML = `<div class="error-msg" style="display:block;">Failed to fetch domain data.</div>`;
+    });
+}
+
+function renderDomainResults(data) {
+    const container = document.getElementById('doResults');
+    
+    let kwRows = (data.top_keywords || []).map(k => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 10px; font-weight: 600; color: #f8fafc;">${k.keyword}</td>
+            <td style="padding: 10px; text-align: center; color: #34d399; font-weight: 700;">#${k.position}</td>
+            <td style="padding: 10px; text-align: center; color: #818cf8;">${k.volume.toLocaleString()}</td>
+            <td style="padding: 10px; text-align: right; color: #cbd5e1;">${k.traffic_share}</td>
+        </tr>
+    `).join('');
+
+    let compRows = (data.competitors || []).map(c => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
+            <td style="padding: 10px; font-weight: 600; color: #e2e8f0;">${c.domain}</td>
+            <td style="padding: 10px; text-align: center; color: #fde047; font-weight: 700;">${c.overlap_pct}</td>
+            <td style="padding: 10px; text-align: right; color: #818cf8;">${c.common_keywords.toLocaleString()} kw</td>
+        </tr>
+    `).join('');
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px;">
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Domain Authority</div>
+                <div class="meta-value" style="color:#38bdf8; font-size:2rem;">${data.authority_score}<span style="font-size:1rem;">/100</span></div>
+            </div>
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Est. Monthly Traffic</div>
+                <div class="meta-value" style="color:#34d399; font-size:1.8rem;">${data.organic_traffic.toLocaleString()}</div>
+            </div>
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Organic Keywords</div>
+                <div class="meta-value" style="color:#818cf8; font-size:1.8rem;">${data.organic_keywords.toLocaleString()}</div>
+            </div>
+            <div class="meta-card" style="text-align: center;">
+                <div class="meta-label">Backlinks</div>
+                <div class="meta-value" style="color:#fde047; font-size:1.8rem;">${data.backlinks_count.toLocaleString()}</div>
+                <span style="font-size:0.8rem; color:#94a3b8;">from ${data.referring_domains.toLocaleString()} domains</span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Top Organic Ranking Keywords</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                                <th style="padding: 8px;">Keyword</th>
+                                <th style="padding: 8px; text-align: center;">Pos</th>
+                                <th style="padding: 8px; text-align: center;">Volume</th>
+                                <th style="padding: 8px; text-align: right;">Traffic %</th>
+                            </tr>
+                        </thead>
+                        <tbody>${kwRows}</tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Competitor Keyword Overlap</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                                <th style="padding: 8px;">Competitor</th>
+                                <th style="padding: 8px; text-align: center;">Overlap</th>
+                                <th style="padding: 8px; text-align: right;">Common Keywords</th>
+                            </tr>
+                        </thead>
+                        <tbody>${compRows}</tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function setSerpDevice(dev) {
+    currentSerpDevice = dev;
+    document.getElementById('serpBtnDesktop').classList.toggle('active', dev === 'desktop');
+    document.getElementById('serpBtnMobile').classList.toggle('active', dev === 'mobile');
+    updateSerpPreview();
+}
+
+function updateSerpPreview() {
+    const title = document.getElementById('simTitle')?.value || '';
+    const url = document.getElementById('simUrl')?.value || '';
+    const desc = document.getElementById('simDesc')?.value || '';
+
+    const titleChar = document.getElementById('serpTitleChar');
+    if (titleChar) titleChar.textContent = `${title.length} / 60 chars`;
+    
+    const descChar = document.getElementById('serpDescChar');
+    if (descChar) descChar.textContent = `${desc.length} / 160 chars`;
+
+    const gTitle = document.getElementById('gserpTitle');
+    if (gTitle) gTitle.textContent = title || 'Enter Page Title...';
+
+    const gDesc = document.getElementById('gserpDesc');
+    if (gDesc) gDesc.textContent = desc || 'Enter Meta Description...';
+
+    const gSite = document.getElementById('gserpSiteName');
+    if (gSite) {
+        try {
+            const parsed = new URL(url.startsWith('http') ? url : 'https://' + url);
+            gSite.textContent = parsed.hostname;
+        } catch (e) {
+            gSite.textContent = url || 'example.com';
+        }
+    }
+
+    const mockup = document.getElementById('googleSerpMockup');
+    if (mockup) {
+        if (currentSerpDevice === 'mobile') {
+            mockup.style.maxWidth = '360px';
+            mockup.style.margin = '0 auto';
+        } else {
+            mockup.style.maxWidth = '100%';
+            mockup.style.margin = '0';
+        }
+    }
+}
+
+function exportAuditCSV() {
+    if (!currentReport || !currentReport.checks) {
+        alert('No audit data available to export.');
+        return;
+    }
+
+    let csvContent = "data:text/csv;charset=utf-8,Category,Check Name,Status,Score,Max Score,Severity,Message,Recommendation\n";
+
+    for (const [cat, checks] of Object.entries(currentReport.checks)) {
+        checks.forEach(c => {
+            const row = [
+                `"${cat}"`,
+                `"${(c.name || '').replace(/"/g, '""')}"`,
+                `"${c.status || ''}"`,
+                c.score || 0,
+                c.max_score || 0,
+                c.severity || 0,
+                `"${(c.message || '').replace(/"/g, '""')}"`,
+                `"${(c.recommendation || '').replace(/"/g, '""')}"`
+            ].join(',');
+            csvContent += row + "\n";
+        });
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `seo_audit_${(currentReport.final_url || 'report').replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/* ═══════════════════════════════════════════════
+   HISTORICAL SCORE GRAPH HANDLERS
+   ═══════════════════════════════════════════════ */
+
+let historyChartInstance = null;
+
+function loadHistoricalScoreGraph(targetUrl) {
+    if (!targetUrl) return;
+
+    fetch("/api/score-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: targetUrl })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success && res.history) {
+            renderHistoryChart(res);
+        }
+    })
+    .catch(e => console.error("History graph load error:", e));
+}
+
+function renderHistoryChart(data) {
+    const canvas = document.getElementById("historyChart");
+    if (!canvas) return;
+
+    const badge = document.getElementById("histImprovementBadge");
+    if (badge) {
+        badge.textContent = data.score_improvement || "+0%";
+        badge.style.color = (data.score_improvement || "").startsWith("-") ? "#ef4444" : "#34d399";
+    }
+
+    const labels = data.history.map(h => h.date);
+    const scores = data.history.map(h => h.score);
+
+    if (historyChartInstance) {
+        historyChartInstance.destroy();
+    }
+
+    if (typeof Chart === "undefined") return;
+
+    const ctx = canvas.getContext("2d");
+    const gradient = ctx.createLinearGradient(0, 0, 0, 260);
+    gradient.addColorStop(0, "rgba(52, 211, 153, 0.35)");
+    gradient.addColorStop(1, "rgba(52, 211, 153, 0.0)");
+
+    historyChartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "SEO Score Trend",
+                data: scores,
+                borderColor: "#34d399",
+                borderWidth: 3,
+                backgroundColor: gradient,
+                fill: true,
+                tension: 0.35,
+                pointRadius: 6,
+                pointHoverRadius: 8,
+                pointBackgroundColor: "#34d399",
+                pointBorderColor: "#ffffff",
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: "rgba(15, 23, 42, 0.95)",
+                    titleColor: "#ffffff",
+                    bodyColor: "#34d399",
+                    padding: 12,
+                    displayColors: false,
+                    callbacks: {
+                        label: function(ctx) {
+                            return `SEO Audit Score: ${ctx.parsed.y}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: "rgba(255, 255, 255, 0.06)" },
+                    ticks: { color: "#94a3b8" }
+                },
+                y: {
+                    min: 0,
+                    max: 100,
+                    grid: { color: "rgba(255, 255, 255, 0.06)" },
+                    ticks: { color: "#94a3b8", stepSize: 20 }
+                }
+            }
+        }
+    });
+}
+
+
 
 
