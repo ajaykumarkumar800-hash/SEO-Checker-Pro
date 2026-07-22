@@ -24,6 +24,7 @@ function startAnalysis(forceRefresh = false) {
     
     hideError();
     setLoading(true);
+    switchProTool('site-audit');
     showSection("loading");
     animateLoadingSteps();
 
@@ -45,10 +46,14 @@ function startAnalysis(forceRefresh = false) {
     })
     .then(data => {
         if (data.success) {
+            currentReport = data;
             completeLoadingAnimation(() => {
                 setLoading(false);
-                currentReport = data;
-                renderResults(data);
+                try {
+                    renderResults(data);
+                } catch(renderErr) {
+                    console.error("renderResults error:", renderErr);
+                }
                 showSection("results");
             });
         } else {
@@ -202,6 +207,16 @@ function completeLoadingAnimation(callback) {
     const countdownEl = document.getElementById("countdownSeconds");
     const steps = document.querySelectorAll(".loading-step");
     
+    let called = false;
+    const safeCallback = () => {
+        if (!called) {
+            called = true;
+            if (callback) callback();
+        }
+    };
+    
+    const fallbackTimer = setTimeout(safeCallback, 1200);
+
     let startPercent = 25;
     if (percentEl) {
         startPercent = parseInt(percentEl.textContent) || 25;
@@ -212,7 +227,7 @@ function completeLoadingAnimation(callback) {
         startSeconds = parseInt(countdownEl.textContent) || 25;
     }
     
-    const duration = 1200; // Smooth 1.2s ease-out to reach 100%
+    const duration = 800; // Smooth 0.8s ease-out to reach 100%
     const startTime = performance.now();
     
     if (ringFill) {
@@ -224,7 +239,6 @@ function completeLoadingAnimation(callback) {
         const elapsed = now - startTime;
         const progress = Math.min(elapsed / duration, 1);
         
-        // Eased percentage calculation (cubic ease out)
         const easeProgress = 1 - Math.pow(1 - progress, 3);
         const currentPercent = Math.round(startPercent + (100 - startPercent) * easeProgress);
         const currentSeconds = Math.round(startSeconds * (1 - easeProgress));
@@ -261,7 +275,8 @@ function completeLoadingAnimation(callback) {
                 s.classList.remove("active");
                 s.classList.add("done");
             });
-            setTimeout(callback, 300);
+            clearTimeout(fallbackTimer);
+            setTimeout(safeCallback, 150);
         }
     }
     
