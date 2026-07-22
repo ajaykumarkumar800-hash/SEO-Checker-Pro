@@ -1975,13 +1975,13 @@ function renderExecutiveDashboard() {
                 { url: "https://tech-blog-demo.org", score: 64, grade: "C", date: "18 Jul" }
             ];
             tbody.innerHTML = sampleProjects.map(p => `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: #cbd5e1;">
-                    <td style="padding: 14px; font-weight: 600; color: #fff;">${p.url}</td>
-                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${p.score}%</span></td>
-                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 700;">${p.grade}</span></td>
-                    <td style="padding: 14px; text-align: center; color: #94a3b8;">${p.date}</td>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
+                    <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
+                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
+                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
+                    <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
                     <td style="padding: 14px; text-align: right;">
-                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: rgba(79,70,229,0.2); color: #818cf8; border: 1px solid rgba(79,70,229,0.4); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
+                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
                             Run Audit
                         </button>
                     </td>
@@ -1989,20 +1989,22 @@ function renderExecutiveDashboard() {
             `).join('');
         } else {
             tbody.innerHTML = history.slice(0, 10).map(p => `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: #cbd5e1;">
-                    <td style="padding: 14px; font-weight: 600; color: #fff;">${p.url}</td>
-                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.15); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 700;">${p.score || 75}%</span></td>
-                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 700;">${p.grade || 'B'}</span></td>
-                    <td style="padding: 14px; text-align: center; color: #94a3b8;">${p.date || 'Recent'}</td>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
+                    <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
+                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
+                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
+                    <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${new Date(p.timestamp).toLocaleDateString()}</td>
                     <td style="padding: 14px; text-align: right;">
-                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: rgba(79,70,229,0.2); color: #818cf8; border: 1px solid rgba(79,70,229,0.4); padding: 4px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">
-                            Run Audit
+                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
+                            Re-Scan
                         </button>
                     </td>
                 </tr>
             `).join('');
         }
     }
+
+    loadHistoricalScoreGraph();
 }
 
 function runKeywordResearch() {
