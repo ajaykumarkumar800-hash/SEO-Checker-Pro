@@ -4,35 +4,35 @@
    ═══════════════════════════════════════════════ */
 
 :root {
-    --bg-primary: #f7f9fc;
-    --bg-secondary: #ffffff;
-    --bg-card: rgba(255, 255, 255, 0.75);
-    --bg-card-hover: rgba(255, 255, 255, 0.95);
-    --bg-glass: rgba(0, 0, 0, 0.03);
-    --bg-glass-2: rgba(0, 0, 0, 0.06);
+    --bg-primary: #090d16;
+    --bg-secondary: #0f172a;
+    --bg-card: rgba(15, 23, 42, 0.85);
+    --bg-card-hover: rgba(30, 41, 59, 0.95);
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --bg-glass-2: rgba(255, 255, 255, 0.08);
 
-    --text-primary: #1e293b;
-    --text-secondary: #475569;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
     --text-muted: #94a3b8;
 
-    --accent-1: #4f46e5;
-    --accent-2: #7c3aed;
-    --gradient-main: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    --gradient-glow: linear-gradient(135deg, rgba(79,70,229,0.06), rgba(124,58,237,0.06));
-    --gradient-blue: linear-gradient(135deg, #3b82f6, #06b6d4);
+    --accent-1: #6366f1;
+    --accent-2: #8b5cf6;
+    --gradient-main: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    --gradient-glow: linear-gradient(135deg, rgba(99,102,241,0.2), rgba(139,92,246,0.2));
+    --gradient-blue: linear-gradient(135deg, #38bdf8, #3b82f6);
 
-    --green: #10b981;
-    --green-bg: rgba(16, 185, 129, 0.08);
-    --green-border: rgba(16, 185, 129, 0.18);
-    --amber: #f59e0b;
-    --amber-bg: rgba(245, 158, 11, 0.08);
-    --amber-border: rgba(245, 158, 11, 0.18);
-    --red: #ef4444;
-    --red-bg: rgba(239, 68, 68, 0.08);
-    --red-border: rgba(239, 68, 68, 0.18);
-    --blue: #3b82f6;
-    --blue-bg: rgba(59, 130, 246, 0.08);
-    --blue-border: rgba(59, 130, 246, 0.18);
+    --green: #34d399;
+    --green-bg: rgba(52, 211, 153, 0.12);
+    --green-border: rgba(52, 211, 153, 0.3);
+    --amber: #fbbf24;
+    --amber-bg: rgba(251, 191, 36, 0.12);
+    --amber-border: rgba(251, 191, 36, 0.3);
+    --red: #f87171;
+    --red-bg: rgba(248, 113, 113, 0.12);
+    --red-border: rgba(248, 113, 113, 0.3);
+    --blue: #38bdf8;
+    --blue-bg: rgba(56, 189, 248, 0.12);
+    --blue-border: rgba(56, 189, 248, 0.3);
 
     --radius-sm: 8px;
     --radius-md: 12px;
@@ -41,11 +41,11 @@
     --radius-2xl: 24px;
     --radius-full: 100px;
 
-    --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
-    --shadow-md: 0 8px 30px rgba(0,0,0,0.05);
-    --shadow-lg: 0 16px 40px rgba(0,0,0,0.08);
-    --shadow-glow: 0 0 30px rgba(79,70,229,0.08);
-    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.03), inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 3px rgba(0, 0, 0, 0.02);
+    --shadow-sm: 0 2px 8px rgba(0,0,0,0.2);
+    --shadow-md: 0 8px 30px rgba(0,0,0,0.3);
+    --shadow-lg: 0 16px 40px rgba(0,0,0,0.5);
+    --shadow-glow: 0 0 30px rgba(99,102,241,0.25);
+    --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
 
     --font: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -145,22 +145,22 @@ body {
 .search-box {
     display: flex; align-items: center;
     max-width: 720px; margin: 0 auto;
-    background: var(--bg-card); border: 1px solid rgba(0,0,0,0.08);
+    background: #0f172a !important; border: 1px solid rgba(255,255,255,0.18) !important;
     border-radius: var(--radius-full); padding: 6px 6px 6px 22px;
     transition: var(--transition); backdrop-filter: blur(20px);
-    box-shadow: var(--shadow-card);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
 }
 .search-box:focus-within {
-    border-color: var(--accent-1);
-    box-shadow: var(--shadow-glow), 0 0 0 4px rgba(102,126,234,0.08);
+    border-color: var(--accent-1) !important;
+    box-shadow: var(--shadow-glow), 0 0 0 4px rgba(99,102,241,0.2) !important;
 }
-.search-icon { flex-shrink: 0; width: 20px; height: 20px; color: var(--text-muted); margin-right: 12px; }
+.search-icon { flex-shrink: 0; width: 20px; height: 20px; color: #94a3b8; margin-right: 12px; }
 .search-icon svg { width: 100%; height: 100%; }
 .search-input {
     flex: 1; background: transparent; border: none; outline: none;
-    color: var(--text-primary); font-size: 1rem; font-family: var(--font); padding: 14px 0;
+    color: #ffffff !important; font-size: 1rem; font-family: var(--font); padding: 14px 0;
 }
-.search-input::placeholder { color: var(--text-muted); }
+.search-input::placeholder { color: #94a3b8 !important; opacity: 1 !important; }
 .search-btn {
     flex-shrink: 0; padding: 14px 36px;
     background: var(--gradient-main); color: white; border: none;

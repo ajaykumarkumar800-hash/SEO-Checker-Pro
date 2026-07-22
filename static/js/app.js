@@ -1912,6 +1912,12 @@ function switchProTool(toolId) {
     document.getElementById('hero').style.display = 'none';
     document.getElementById('resultsSection').style.display = 'none';
     document.getElementById('loadingSection').style.display = 'none';
+
+    // Hide extra legacy sections when not on site-audit
+    document.querySelectorAll('.compare-section, .gsc-section, .seo-education-section, .history-section, .footer-support-section').forEach(sec => {
+        sec.style.display = (toolId === 'site-audit') ? '' : 'none';
+    });
+
     document.querySelectorAll('.pro-tool-section').forEach(sec => sec.style.display = 'none');
 
     if (toolId === 'dashboard') {
