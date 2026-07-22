@@ -44,63 +44,82 @@
     <div class="bg-glow bg-glow-2"></div>
     <div class="bg-glow bg-glow-3"></div>
 
-    <!-- Header Navigation -->
-    <!-- Header Navigation -->
-    <header class="header">
-        <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px;">
-            <a href="/" class="logo" style="text-decoration: none; color: inherit;">
-                <div class="logo-icon" style="display: inline-block; vertical-align: middle;">
-                    <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="3" width="24" height="24" style="display:inline-block; vertical-align:middle;">
+    <div class="app-wrapper">
+        <!-- ── LEFT VERTICAL SIDEBAR NAVIGATION ── -->
+        <aside class="app-sidebar" id="appSidebar">
+            <!-- Brand Logo -->
+            <a href="/" class="sidebar-brand">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" stroke-width="3" width="24" height="24">
                         <circle cx="18" cy="18" r="16"/>
                         <path d="M11 19L15.5 23.5L25 12.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
-                <span class="logo-text">SEO Checker <span class="logo-accent">Pro</span></span>
+                <span class="logo-text" style="font-size: 1.15rem; font-weight: 800;">SEO Checker <span class="logo-accent">Pro</span></span>
             </a>
-            
-            <nav class="pro-suite-nav" style="display: flex; gap: 6px; background: rgba(15,23,42,0.8); padding: 4px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap;">
-                <button class="pro-nav-btn active" id="pnav-dashboard" onclick="switchProTool('dashboard')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+
+            <!-- Navigation Links -->
+            <nav style="flex: 1; overflow-y: auto;">
+                <div class="sidebar-nav-label">Core Dashboard</div>
+                <button class="sidebar-btn pro-nav-btn active" id="pnav-dashboard" onclick="switchProTool('dashboard')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     Dashboard
                 </button>
-                <button class="pro-nav-btn" id="pnav-site-audit" onclick="switchProTool('site-audit')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-site-audit" onclick="switchProTool('site-audit')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     Site Audit
                 </button>
-                <button class="pro-nav-btn" id="pnav-keyword-magic" onclick="switchProTool('keyword-magic')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+
+                <div class="sidebar-nav-label">Keyword & Competitor</div>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-keyword-magic" onclick="switchProTool('keyword-magic')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     Keyword Magic
                 </button>
-                <button class="pro-nav-btn" id="pnav-domain-overview" onclick="switchProTool('domain-overview')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-domain-overview" onclick="switchProTool('domain-overview')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     Domain Overview
                 </button>
-                <button class="pro-nav-btn" id="pnav-competitor-gap" onclick="switchProTool('competitor-gap')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-competitor-gap" onclick="switchProTool('competitor-gap')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     Competitor Gap
                 </button>
-                <button class="pro-nav-btn" id="pnav-rank-tracker" onclick="switchProTool('rank-tracker')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-rank-tracker" onclick="switchProTool('rank-tracker')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                     Rank Tracker
                 </button>
-                <button class="pro-nav-btn" id="pnav-security-audit" onclick="switchProTool('security-audit')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+
+                <div class="sidebar-nav-label">Security & Preview</div>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-security-audit" onclick="switchProTool('security-audit')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                     Security Audit
                 </button>
-                <button class="pro-nav-btn" id="pnav-serp-simulator" onclick="switchProTool('serp-simulator')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-serp-simulator" onclick="switchProTool('serp-simulator')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     SERP Simulator
                 </button>
             </nav>
 
-            <div class="nav-badges">
-                <span class="badge badge-glow">v3.0 Pro</span>
-                <span class="badge">Pro Toolkit</span>
+            <!-- Sidebar Footer Status -->
+            <div class="sidebar-footer">
+                <span class="badge badge-glow">v3.0 Pro Suite</span>
+                <span style="font-size: 0.75rem; color: #34d399; font-weight: 600;">● Live Engine</span>
             </div>
-        </div>
-    </header>
+        </aside>
 
-    <main id="main-content">
+        <!-- ── MAIN CONTENT AREA ── -->
+        <div class="app-main">
+            <!-- Mobile Header Topbar -->
+            <header style="padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.08); background: rgba(15,23,42,0.8);">
+                <button class="topbar-mobile-toggle" onclick="document.getElementById('appSidebar').classList.toggle('open')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                    Menu
+                </button>
+                <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+                    <span class="badge badge-glow">⚡ 100% Real-Time Engine Active</span>
+                </div>
+            </header>
+
+            <main id="main-content">
     <!-- ── HERO / INPUT SECTION ── -->
     <div id="hero" class="hero">
         <div class="container">
@@ -886,6 +905,8 @@
         </div>
     </section>
     </main>
+        </div> <!-- /.app-main -->
+    </div> <!-- /.app-wrapper -->
 
     <!-- ── PRINT REPORT (hidden, used for PDF export) ── -->
     <div id="printReport" class="print-only-report"></div>
