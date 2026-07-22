@@ -2263,27 +2263,6 @@ function renderExecutiveDashboard() {
         renderDashboardList(localHistory);
     });
 }
-                            </button>
-                        </td>
-                    </tr>
-                `).join('');
-            } else {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="padding: 24px; text-align: center; color: #cbd5e1;">
-                            No saved audit projects found for <b>${user.email}</b>. Run your first audit scan above!
-                        </td>
-                    </tr>
-                `;
-            }
-        }
-    })
-    .catch(err => {
-        console.error("User history fetch error:", err);
-    });
-
-    loadHistoricalScoreGraph();
-}
 
 function deleteProject(targetUrl) {
     if (!targetUrl) return;
