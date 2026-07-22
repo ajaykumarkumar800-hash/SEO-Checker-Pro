@@ -300,8 +300,8 @@ function renderResults(data) {
     if (cacheBanner) {
         if (data.cached) {
             cacheBanner.style.display = "flex";
-            const srcStr = (data.cache_source || "Instant Database Cache").replace(/^⚡\s*/, "");
-            if (cacheText) cacheText.textContent = `⚡ ${srcStr} (Loaded in < 50ms)`;
+            const srcStr = (data.cache_source || "Instant Database Cache").replace(/^[^a-zA-Z0-9\s]+\s*/, "");
+            if (cacheText) cacheText.textContent = `${srcStr} (Loaded in < 50ms)`;
         } else {
             cacheBanner.style.display = "none";
         }
@@ -768,7 +768,7 @@ function renderDetail(key, value) {
                 <div class="detail-item" style="grid-column:1/-1">
                     <details class="collapsible-detail-list">
                         <summary class="detail-label" style="cursor:pointer; display:flex; align-items:center; gap:6px; outline:none; user-select:none; font-weight:600; color:var(--text-secondary);">
-                            <span class="toggle-arrow" style="transition:transform 0.2s; display:inline-block; font-size:8px; line-height:1;">▶</span>
+                            <span class="toggle-arrow" style="transition:transform 0.2s; display:inline-block; font-size:8px; line-height:1;">&#9654;</span>
                             ${label} (${value.length})
                         </summary>
                         <ul class="detail-list" style="margin-top:8px; padding-left:14px;">
@@ -2024,10 +2024,10 @@ function renderExecutiveDashboard() {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="5" style="padding: 28px; text-align: center; color: #cbd5e1;">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">🔒 Private User History Active</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Private User History Active</div>
                         <div>Please log in to access your private website audit projects and scan history.</div>
                         <button onclick="openAuthModal()" style="margin-top: 12px; padding: 8px 22px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
-                            🔑 Log In / Sign Up
+                            Log In / Sign Up
                         </button>
                     </td>
                 </tr>
@@ -2618,11 +2618,11 @@ function renderCompetitorResults(data) {
                 </div>
                 <div style="background: rgba(15,23,42,0.6); padding: 15px; border-radius: 12px;">
                     <span style="font-size: 0.8rem; color: #94a3b8;">Authority Leader</span>
-                    <div style="font-size: 1.2rem; font-weight: 800; color: #34d399;">🏆 ${cmp.winner_authority}</div>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: #34d399;">${cmp.winner_authority}</div>
                 </div>
                 <div style="background: rgba(15,23,42,0.6); padding: 15px; border-radius: 12px;">
                     <span style="font-size: 0.8rem; color: #94a3b8;">Speed Winner</span>
-                    <div style="font-size: 1.2rem; font-weight: 800; color: #fde047;">⚡ ${cmp.winner_speed}</div>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: #fde047;">${cmp.winner_speed}</div>
                 </div>
             </div>
         </div>
@@ -2735,7 +2735,7 @@ function renderSecurityResults(data) {
     const headersList = Object.entries(data.headers_check).map(([h, st]) => `
         <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.9rem;">
             <span style="color:#cbd5e1; font-weight:600;">${h}</span>
-            <span style="color:${st === 'PASS' ? '#34d399' : '#ef4444'}; font-weight:700;">${st === 'PASS' ? '✅ PASS' : '❌ MISSING'}</span>
+            <span style="color:${st === 'PASS' ? '#34d399' : '#ef4444'}; font-weight:700;">${st === 'PASS' ? 'PASS' : 'MISSING'}</span>
         </div>
     `).join("");
 
@@ -2745,7 +2745,7 @@ function renderSecurityResults(data) {
                 <span style="font-size: 0.8rem; color: #94a3b8; text-transform: uppercase;">Security Score</span>
                 <div style="font-size: 3.2rem; font-weight: 800; color: ${data.security_score >= 80 ? '#34d399' : '#fde047'}; margin: 8px 0;">${data.security_score}</div>
                 <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">Grade ${data.security_grade}</div>
-                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 10px;">${data.is_https ? '🔒 HTTPS Encrypted' : '⚠️ HTTP Connection'}</div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 10px;">${data.is_https ? 'HTTPS Encrypted' : 'HTTP Connection'}</div>
             </div>
 
             <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
@@ -2788,7 +2788,7 @@ function updateAuthUI() {
 
     if (user) {
         if (topbarBtn) {
-            topbarBtn.innerHTML = `👤 ${user.name} (Log Out)`;
+            topbarBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${user.name} (Log Out)`;
             topbarBtn.onclick = handleLogout;
             topbarBtn.style.background = "rgba(239, 68, 68, 0.2)";
             topbarBtn.style.border = "1px solid rgba(239, 68, 68, 0.4)";
@@ -2798,17 +2798,17 @@ function updateAuthUI() {
             userBox.innerHTML = `
                 <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
                     <div>
-                        <div style="font-size:0.85rem; font-weight:700; color:#fff;">👤 ${user.name}</div>
+                        <div style="font-size:0.85rem; font-weight:700; color:#fff;">${user.name}</div>
                         <div style="font-size:0.72rem; color:#cbd5e1; word-break:break-all;">${user.email}</div>
                     </div>
                     <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; font-weight:700; font-size:0.78rem; cursor:pointer; text-decoration:underline;">Logout</button>
                 </div>
-                <div style="margin-top:6px; font-size:0.7rem; color:#34d399; font-weight:700;">🔒 Private User History Active</div>
+                <div style="margin-top:6px; font-size:0.7rem; color:#34d399; font-weight:700;">Private User History Active</div>
             `;
         }
     } else {
         if (topbarBtn) {
-            topbarBtn.innerHTML = `🔑 Login / Sign Up`;
+            topbarBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Login / Sign Up`;
             topbarBtn.onclick = openAuthModal;
             topbarBtn.style.background = "linear-gradient(135deg, #6366f1, #4f46e5)";
             topbarBtn.style.border = "none";
@@ -2818,7 +2818,9 @@ function updateAuthUI() {
             userBox.innerHTML = `
                 <div style="text-align:center;">
                     <div style="font-size:0.78rem; color:#cbd5e1; margin-bottom:8px;">Sign in to view your private audit history</div>
-                    <button onclick="openAuthModal()" style="width:100%; padding:8px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.3);">🔑 Login / Sign Up</button>
+                    <button onclick="openAuthModal()" style="width:100%; padding:8px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.3); display:flex; align-items:center; justify-content:center; gap:6px;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Login / Sign Up
+                    </button>
                 </div>
             `;
         }
