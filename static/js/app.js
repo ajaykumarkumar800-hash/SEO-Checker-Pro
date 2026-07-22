@@ -2399,8 +2399,26 @@ function exportAuditCSV() {
 
 let historyChartInstance = null;
 let dashHistoryChartInstance = null;
+let currentHistoryDays = 30;
 
-function loadHistoricalScoreGraph(targetUrl) {
+function switchHistoryRange(days) {
+    currentHistoryDays = days;
+
+    // Update button active states
+    document.querySelectorAll(".hist-range-btn").forEach(btn => {
+        if (parseInt(btn.getAttribute("data-days")) === days) {
+            btn.style.background = "#6366f1";
+            btn.style.color = "#fff";
+        } else {
+            btn.style.background = "transparent";
+            btn.style.color = "#94a3b8";
+        }
+    });
+
+    loadHistoricalScoreGraph(null, days);
+}
+
+function loadHistoricalScoreGraph(targetUrl, days) {
     if (!targetUrl) {
         if (currentReport && (currentReport.final_url || currentReport.url)) {
             targetUrl = currentReport.final_url || currentReport.url;
@@ -2408,15 +2426,20 @@ function loadHistoricalScoreGraph(targetUrl) {
             targetUrl = "https://example.com";
         }
     }
+    if (!days) days = currentHistoryDays || 30;
 
     fetch("/api/score-history", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: targetUrl })
+        body: JSON.stringify({ url: targetUrl, days: days })
     })
     .then(r => r.json())
     .then(res => {
         if (res.success && res.history) {
+            // Update range label
+            const rangeLabel = document.getElementById("dashHistRangeLabel");
+            if (rangeLabel) rangeLabel.textContent = (res.range_label || "30-Day") + " Score Growth";
+
             renderHistoryChart(res);
         }
     })
@@ -2458,11 +2481,11 @@ function renderHistoryChart(data) {
                     backgroundColor: gradient1,
                     fill: true,
                     tension: 0.35,
-                    pointRadius: 6,
+                    pointRadius: scores.length > 30 ? 2 : 6,
                     pointHoverRadius: 8,
                     pointBackgroundColor: "#34d399",
                     pointBorderColor: "#ffffff",
-                    pointBorderWidth: 2
+                    pointBorderWidth: scores.length > 30 ? 1 : 2
                 }]
             },
             options: {
@@ -2482,7 +2505,15 @@ function renderHistoryChart(data) {
                     }
                 },
                 scales: {
-                    x: { grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", font: { weight: '600' } } },
+                    x: {
+                        grid: { color: "rgba(255, 255, 255, 0.08)" },
+                        ticks: {
+                            color: "#cbd5e1",
+                            font: { weight: '600' },
+                            maxTicksLimit: scores.length > 60 ? 12 : (scores.length > 20 ? 10 : undefined),
+                            maxRotation: 45
+                        }
+                    },
                     y: { min: 0, max: 100, grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", stepSize: 20, font: { weight: '600' } } }
                 }
             }
@@ -2510,11 +2541,11 @@ function renderHistoryChart(data) {
                     backgroundColor: gradient2,
                     fill: true,
                     tension: 0.35,
-                    pointRadius: 6,
+                    pointRadius: scores.length > 30 ? 2 : 6,
                     pointHoverRadius: 8,
                     pointBackgroundColor: "#818cf8",
                     pointBorderColor: "#ffffff",
-                    pointBorderWidth: 2
+                    pointBorderWidth: scores.length > 30 ? 1 : 2
                 }]
             },
             options: {
@@ -2534,7 +2565,15 @@ function renderHistoryChart(data) {
                     }
                 },
                 scales: {
-                    x: { grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", font: { weight: '600' } } },
+                    x: {
+                        grid: { color: "rgba(255, 255, 255, 0.08)" },
+                        ticks: {
+                            color: "#cbd5e1",
+                            font: { weight: '600' },
+                            maxTicksLimit: scores.length > 60 ? 12 : (scores.length > 20 ? 10 : undefined),
+                            maxRotation: 45
+                        }
+                    },
                     y: { min: 0, max: 100, grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", stepSize: 20, font: { weight: '600' } } }
                 }
             }

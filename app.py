@@ -581,10 +581,14 @@ def analyze():
 
 @app.route("/api/score-history", methods=["POST", "GET"])
 def score_history():
-    """Fetch 30-day historical SEO score progression for a URL/Domain."""
-    import datetime
+    """Fetch historical SEO score progression for a URL/Domain with configurable time range."""
     data = request.get_json() if request.is_json else {}
     target_url = (data.get("url") or request.args.get("url") or "").strip().lower().rstrip('/')
+    days = int(data.get("days") or request.args.get("days") or 30)
+    
+    # Clamp to valid range
+    if days not in [7, 30, 90, 180, 365]:
+        days = 30
     
     if not target_url:
         return jsonify({"success": False, "error": "Please provide a URL."}), 400
@@ -598,7 +602,7 @@ def score_history():
     global reports_collection
     if reports_collection is not None:
         try:
-            cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=30)
+            cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
             cursor = reports_collection.find(
                 {"url": {"$regex": f"^{target_url}", "$options": "i"}, "timestamp": {"$gte": cutoff}},
                 {"timestamp": 1, "overall_score": 1, "grade": 1}
@@ -606,7 +610,10 @@ def score_history():
             
             for doc in cursor:
                 ts = doc.get("timestamp")
-                dt_str = ts.strftime("%d %b") if isinstance(ts, datetime.datetime) else "Recent"
+                if days <= 30:
+                    dt_str = ts.strftime("%d %b") if isinstance(ts, datetime.datetime) else "Recent"
+                else:
+                    dt_str = ts.strftime("%d %b %Y") if isinstance(ts, datetime.datetime) else "Recent"
                 history.append({
                     "date": dt_str,
                     "timestamp": ts.isoformat() if isinstance(ts, datetime.datetime) else str(ts),
@@ -629,9 +636,14 @@ def score_history():
     diff = last_score - first_score
     diff_str = f"+{diff}%" if diff >= 0 else f"{diff}%"
 
+    # Map days to human readable range label
+    range_labels = {7: "7-Day", 30: "30-Day", 90: "3-Month", 180: "6-Month", 365: "1-Year"}
+
     return jsonify({
         "success": True,
         "url": target_url,
+        "days": days,
+        "range_label": range_labels.get(days, f"{days}-Day"),
         "history": history,
         "total_scans": len(history),
         "score_improvement": diff_str,

@@ -290,14 +290,21 @@
                     <div>
                         <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 10px;">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px; height:20px; color: #818cf8;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
-                            Historical SEO Score Progress (30-Day Growth)
+                            Historical SEO Score Progress
                         </h3>
-                        <p style="font-size: 0.88rem; color: #cbd5e1;">Track site health improvements and audit progression curve over time.</p>
+                        <p style="font-size: 0.88rem; color: #cbd5e1;">Track site health improvements and audit progression over time.</p>
                     </div>
-                    <div style="display: flex; gap: 16px; align-items: center;">
+                    <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <div id="histRangeButtons" style="display: flex; gap: 4px; background: rgba(15,23,42,0.6); border-radius: 10px; padding: 3px;">
+                            <button class="hist-range-btn" data-days="7" onclick="switchHistoryRange(7)" style="padding: 5px 12px; border: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: transparent; color: #94a3b8; transition: all 0.2s;">7D</button>
+                            <button class="hist-range-btn active" data-days="30" onclick="switchHistoryRange(30)" style="padding: 5px 12px; border: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #6366f1; color: #fff; transition: all 0.2s;">1M</button>
+                            <button class="hist-range-btn" data-days="90" onclick="switchHistoryRange(90)" style="padding: 5px 12px; border: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: transparent; color: #94a3b8; transition: all 0.2s;">3M</button>
+                            <button class="hist-range-btn" data-days="180" onclick="switchHistoryRange(180)" style="padding: 5px 12px; border: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: transparent; color: #94a3b8; transition: all 0.2s;">6M</button>
+                            <button class="hist-range-btn" data-days="365" onclick="switchHistoryRange(365)" style="padding: 5px 12px; border: none; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: transparent; color: #94a3b8; transition: all 0.2s;">1Y</button>
+                        </div>
                         <div style="text-align: right;">
-                            <span style="font-size: 0.75rem; color: #cbd5e1; display: block; font-weight: 600;">30-Day Score Growth</span>
-                            <span id="dashHistBadge" style="font-weight: 800; color: #34d399; font-size: 1.2rem;">+22%</span>
+                            <span id="dashHistRangeLabel" style="font-size: 0.75rem; color: #cbd5e1; display: block; font-weight: 600;">30-Day Score Growth</span>
+                            <span id="dashHistBadge" style="font-weight: 800; color: #34d399; font-size: 1.2rem;">+0%</span>
                         </div>
                     </div>
                 </div>
