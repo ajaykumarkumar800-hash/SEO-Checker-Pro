@@ -2194,35 +2194,7 @@ function renderExecutiveDashboard() {
     const avgEl = document.getElementById("dashAvgHealth");
     const tbody = document.getElementById("dashProjectsTable");
 
-    if (!user) {
-        if (countEl) countEl.textContent = "0";
-        if (avgEl) avgEl.textContent = "--";
-        if (tbody) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" style="padding: 28px; text-align: center; color: #cbd5e1;">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">Private User History Active</div>
-                        <div>Please log in to access your private website audit projects and scan history.</div>
-                        <button onclick="openAuthModal()" style="margin-top: 12px; padding: 8px 22px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
-                            Log In / Sign Up
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }
-        loadHistoricalScoreGraph();
-        return;
-    }
-
-    // Fetch user-scoped history for logged-in user
-    fetch("/api/user-history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: user.email })
-    })
-    .then(r => r.json())
-    .then(res => {
-        const history = (res.success && res.history) ? res.history : [];
+    function renderDashboardList(history) {
         if (countEl) countEl.textContent = history.length;
         if (avgEl) {
             if (history.length > 0) {
@@ -2247,6 +2219,50 @@ function renderExecutiveDashboard() {
                             </button>
                             <button onclick="deleteProject('${p.url}')" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="padding: 28px; text-align: center; color: #cbd5e1;">
+                            <div style="font-size: 1rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">No Recent Audits Found</div>
+                            <div>Analyze a website URL above to populate your executive dashboard projects.</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        loadHistoricalScoreGraph(history.length > 0 ? history[0].url : null);
+    }
+
+    if (!user) {
+        let localHistory = [];
+        try {
+            localHistory = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+        } catch(e) {}
+        renderDashboardList(localHistory);
+        return;
+    }
+
+    // Fetch user-scoped history for logged-in user
+    fetch("/api/user-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email })
+    })
+    .then(r => r.json())
+    .then(res => {
+        const history = (res.success && res.history) ? res.history : [];
+        renderDashboardList(history);
+    })
+    .catch(e => {
+        let localHistory = [];
+        try { localHistory = JSON.parse(localStorage.getItem("seo_scan_history") || "[]"); } catch(err) {}
+        renderDashboardList(localHistory);
+    });
+}
                             </button>
                         </td>
                     </tr>
