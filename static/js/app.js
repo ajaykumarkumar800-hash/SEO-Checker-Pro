@@ -91,12 +91,25 @@ document.getElementById("urlInput").addEventListener("keydown", e => {
 });
 
 document.addEventListener("DOMContentLoaded", () => {
-    const keywordInput = document.getElementById("keywordInput");
-    if (keywordInput) {
-        keywordInput.addEventListener("keydown", e => {
-            if (e.key === "Enter") startAnalysis();
-        });
-    }
+    const enterInputs = [
+        { id: "keywordInput", fn: () => startAnalysis() },
+        { id: "kmInput", fn: () => runKeywordResearch() },
+        { id: "doDomain", fn: () => runDomainOverview() },
+        { id: "saUrl", fn: () => runSecurityAudit() },
+        { id: "cgDomain1", fn: () => runCompetitorCompare() },
+        { id: "cgDomain2", fn: () => runCompetitorCompare() },
+        { id: "rtDomain", fn: () => runRankTracker() },
+        { id: "rtKeywords", fn: () => runRankTracker() }
+    ];
+
+    enterInputs.forEach(item => {
+        const el = document.getElementById(item.id);
+        if (el) {
+            el.addEventListener("keydown", e => {
+                if (e.key === "Enter") item.fn();
+            });
+        }
+    });
 });
 
 /* ── UI STATE ── */
