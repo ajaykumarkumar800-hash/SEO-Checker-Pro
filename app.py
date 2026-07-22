@@ -286,6 +286,9 @@ def calculate_keyword_density_fallback(soup):
 # Dual Cache & Score History Stores (MongoDB + In-Memory Fallback)
 IN_MEMORY_AUDIT_CACHE = {}  # key: normalized_url, value: { "report": dict, "timestamp": float }
 LOCAL_SCORE_HISTORY = {}     # key: normalized_url, value: list of { "date": str, "timestamp": str, "score": int, "grade": str }
+LOCAL_USERS = {}             # key: email, value: { "email": str, "password_hash": str, "name": str }
+LOCAL_USER_AUDITS = {}        # key: user_email, value: list of audit summaries
+users_collection = None
 
 # Initialize MongoClient utilising MONGODB_URI environment variable
 mongo_uri = os.environ.get("MONGODB_URI")
@@ -406,7 +409,7 @@ def analyze():
         global reports_collection
         if reports_collection is not None:
             try:
-                cutoff = datetime.datetime.utcnow() - datetime.timedelta(seconds=cache_ttl)
+                cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=cache_ttl)
                 cached_doc = reports_collection.find_one(
                     {"url": {"$regex": f"^{norm_url}", "$options": "i"}, "timestamp": {"$gte": cutoff}},
                     sort=[("timestamp", -1)]
@@ -553,8 +556,9 @@ def analyze():
         }
 
         # Save to Local Score History for Historical Progress Graphing
-        dt_str = datetime.datetime.utcnow().strftime("%d %b")
-        iso_str = datetime.datetime.utcnow().isoformat()
+        now_utc = datetime.datetime.now(datetime.timezone.utc)
+        dt_str = now_utc.strftime("%d %b")
+        iso_str = now_utc.isoformat()
         if norm_url not in LOCAL_SCORE_HISTORY:
             LOCAL_SCORE_HISTORY[norm_url] = []
         LOCAL_SCORE_HISTORY[norm_url].append({
@@ -573,7 +577,7 @@ def analyze():
                 "url": report.get("final_url") or report.get("url"),
                 "score": report.get("overall_score", 0),
                 "grade": report.get("grade", "F"),
-                "date": datetime.datetime.utcnow().strftime("%d %b %Y"),
+                "date": now_utc.strftime("%d %b %Y"),
                 "timestamp": iso_str
             })
 
@@ -598,7 +602,7 @@ def analyze():
                     "grade": report.get("grade"),
                     "summary": report.get("summary"),
                     "user_email": user_email,
-                    "timestamp": datetime.datetime.utcnow(),
+                    "timestamp": datetime.datetime.now(datetime.timezone.utc),
                     "category_scores": report.get("category_scores"),
                     "checks": report.get("checks"),
                     "recommendations": report.get("recommendations"),
@@ -641,7 +645,7 @@ def score_history():
     global reports_collection
     if reports_collection is not None:
         try:
-            cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
+            cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)
             cursor = reports_collection.find({
                 "$or": [
                     {"url": {"$regex": clean_domain, "$options": "i"}},
@@ -679,7 +683,7 @@ def score_history():
     daily_scores = {d: round(sum(scores)/len(scores)) for d, scores in real_scans.items()}
 
     # Construct sample dates spanning the full requested timeline
-    t_now = datetime.datetime.utcnow()
+    t_now = datetime.datetime.now(datetime.timezone.utc)
     t_start = t_now - datetime.timedelta(days=days)
 
     if days == 7:
@@ -740,9 +744,7 @@ def score_history():
         "current_score": last_score
     })
 
-
 users_collection = None
-LOCAL_USERS = {}
 
 import hashlib
 
@@ -779,7 +781,7 @@ def register_user():
                 "email": email,
                 "password_hash": hashed_pw,
                 "name": name,
-                "created_at": datetime.datetime.utcnow()
+                "created_at": datetime.datetime.now(datetime.timezone.utc)
             }
             users_collection.insert_one(user_doc)
             return jsonify({"success": True, "user": {"email": email, "name": name}})
@@ -831,9 +833,6 @@ def login_user():
         return jsonify({"success": True, "user": {"email": user["email"], "name": user["name"]}})
 
     return jsonify({"success": False, "error": "Invalid email or password."}), 401
-
-
-LOCAL_USER_AUDITS = {}
 
 @app.route("/api/user-history", methods=["POST"])
 def get_user_history():

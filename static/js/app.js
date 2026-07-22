@@ -1843,7 +1843,7 @@ function checkAndTriggerClientSidePageSpeed(data) {
                     }
                     
                     const checkName = `PageSpeed Insights (${strategy === 'mobile' ? 'Mobile' : 'Desktop'})`;
-                    const check = (currentReport.checks.performance || []).find(c => c.name === checkName);
+                    const check = (currentReport?.checks?.performance || []).find(c => c.name === checkName);
                     if (check) {
                         check.details = {
                             performance_score: perfScore,

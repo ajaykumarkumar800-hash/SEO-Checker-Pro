@@ -1418,7 +1418,14 @@ class SEOAnalyzer:
     def _check_core_response_speed(self):
         """Check initial HTML fetch delay / server response latency (TTFB)."""
         # Use response.elapsed.total_seconds() as the actual Server Response Latency (TTFB)
-        latency = round(self.response.elapsed.total_seconds(), 3) if self.response else self.load_time
+        try:
+            if self.response and hasattr(self.response, 'elapsed') and hasattr(self.response.elapsed, 'total_seconds'):
+                latency = round(float(self.response.elapsed.total_seconds()), 3)
+            else:
+                latency = round(float(self.load_time or 0.5), 3)
+        except Exception:
+            latency = 0.5
+
         d = {"seconds": latency}
         if latency <= 0.4:
             self.checks.append(SEOCheck("Core Response Speed", "technical", "pass", 10, 10,
@@ -2795,7 +2802,7 @@ class SEOAnalyzer:
             
             import os
             api_key = os.environ.get("PAGESPEED_API_KEY") or os.environ.get("GOOGLE_API_KEY")
-            print(f"--- DIAGNOSTICS: API Key Exists = {bool(api_key)} ---")
+            safe_log(f"--- DIAGNOSTICS: API Key Exists = {bool(api_key)} ---")
             
             if not is_test:
                 try:
@@ -2810,7 +2817,7 @@ class SEOAnalyzer:
                         
                     headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
                     resp = requests.get(api_url, headers=headers, timeout=45)
-                    print(f"--- Google API Status Code: {resp.status_code} ---")
+                    safe_log(f"--- Google API Status Code: {resp.status_code} ---")
                     if resp.status_code == 200:
                         data = resp.json()
                         lighthouse = data.get("lighthouseResult", {})
@@ -2844,11 +2851,11 @@ class SEOAnalyzer:
                                 "data_source": "Google PageSpeed Insights API (Live)"
                             }
                     else:
-                        print(f"--- Google API Error Response: {resp.text[:300]} ---")
+                        safe_log(f"--- Google API Error Response: {resp.text[:300]} ---")
                         error_reason = f"HTTP {resp.status_code}"
                         safe_log(f"PageSpeed API {strategy} failed with status {resp.status_code}: {resp.text}")
                 except Exception as pe:
-                    print(f"--- Exception Occurred: {str(pe)} ---")
+                    safe_log(f"--- Exception Occurred: {str(pe)} ---")
                     error_reason = f"Error: {str(pe)[:30]}"
                     safe_log(f"PageSpeed API {strategy} run failed with exception: {str(pe)}")
             else:
