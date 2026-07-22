@@ -820,6 +820,44 @@ def get_user_history():
     return jsonify({"success": True, "history": history})
 
 
+@app.route("/api/delete-project", methods=["POST"])
+def delete_project():
+    """Delete a specific audit project from MongoDB and Local History."""
+    data = request.get_json() if request.is_json else {}
+    user_email = (data.get("email") or "").strip().lower()
+    target_url = (data.get("url") or "").strip()
+
+    if not user_email or not target_url:
+        return jsonify({"success": False, "error": "Please provide user email and project URL to delete."}), 400
+
+    deleted_count = 0
+    global reports_collection
+    if reports_collection is not None:
+        try:
+            res = reports_collection.delete_many({
+                "user_email": user_email,
+                "$or": [
+                    {"url": target_url},
+                    {"final_url": target_url},
+                    {"url": {"$regex": f"^{target_url.rstrip('/')}", "$options": "i"}}
+                ]
+            })
+            deleted_count = res.deleted_count
+        except Exception as e:
+            safe_log(f"MongoDB project delete error: {str(e)}")
+
+    # Clean local user audits
+    if user_email in LOCAL_USER_AUDITS:
+        LOCAL_USER_AUDITS[user_email] = [item for item in LOCAL_USER_AUDITS[user_email] if item.get("url") != target_url]
+
+    # Clean local score history
+    norm_url = target_url.lower().rstrip('/')
+    if norm_url in LOCAL_SCORE_HISTORY:
+        del LOCAL_SCORE_HISTORY[norm_url]
+
+    return jsonify({"success": True, "deleted_count": deleted_count})
+
+
 @app.route("/api/compare", methods=["POST"])
 def compare():
     """Compare two URLs side-by-side."""

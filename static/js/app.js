@@ -2067,9 +2067,12 @@ function renderExecutiveDashboard() {
                         <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
                         <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
                         <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
-                        <td style="padding: 14px; text-align: right;">
+                        <td style="padding: 14px; text-align: right; display: flex; gap: 8px; justify-content: flex-end;">
                             <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
                                 Re-Scan
+                            </button>
+                            <button onclick="deleteProject('${p.url}')" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Delete
                             </button>
                         </td>
                     </tr>
@@ -2090,6 +2093,43 @@ function renderExecutiveDashboard() {
     });
 
     loadHistoricalScoreGraph();
+}
+
+function deleteProject(targetUrl) {
+    if (!targetUrl) return;
+    const user = getLoggedInUser();
+    if (!user) {
+        alert("Please log in to manage your audit projects.");
+        return;
+    }
+
+    if (!confirm(`Are you sure you want to delete audit project: "${targetUrl}"?`)) {
+        return;
+    }
+
+    // 1. Remove from local storage
+    try {
+        let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+        history = history.filter(h => h.url !== targetUrl);
+        localStorage.setItem("seo_scan_history", JSON.stringify(history));
+    } catch(e) {}
+
+    // 2. Remove from backend database
+    fetch("/api/delete-project", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email, url: targetUrl })
+    })
+    .then(r => r.json())
+    .then(res => {
+        renderExecutiveDashboard();
+        renderHistory();
+    })
+    .catch(err => {
+        console.error("Delete project error:", err);
+        renderExecutiveDashboard();
+        renderHistory();
+    });
 }
 
 function runKeywordResearch() {
