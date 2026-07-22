@@ -826,10 +826,10 @@ function drawRadarChart(scores) {
             if (i === 0) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.05)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
         ctx.lineWidth = 1;
         if (ring === 4) {
-            ctx.strokeStyle = "rgba(0, 0, 0, 0.1)";
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.25)";
         }
         ctx.stroke();
     }
@@ -840,14 +840,13 @@ function drawRadarChart(scores) {
         const cosAngle = Math.cos(angle);
         const sinAngle = Math.sin(angle);
         
-        // Push labels slightly outwards from the axes to prevent overlap (especially Speed, On-Page, and Resources)
-        let labelOffset = 16;
+        let labelOffset = 20;
         if (Math.abs(cosAngle) > 0.3) {
-            labelOffset = 22; // push left/right labels further out horizontally
+            labelOffset = 26;
         }
-        if (key === "on_page") labelOffset = 22; // Push top label higher
-        if (key === "performance") labelOffset = 22; // Push bottom label lower
-        if (key === "resources") labelOffset = 22; // Push bottom-left label further out
+        if (key === "on_page") labelOffset = 26;
+        if (key === "performance") labelOffset = 26;
+        if (key === "resources") labelOffset = 26;
         const lx = cx + (radius + labelOffset) * cosAngle;
         const ly = cy + (radius + labelOffset) * sinAngle;
 
@@ -855,14 +854,14 @@ function drawRadarChart(scores) {
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(cx + radius * cosAngle, cy + radius * sinAngle);
-        ctx.strokeStyle = "rgba(0, 0, 0, 0.04)";
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
         ctx.lineWidth = 1;
         ctx.stroke();
 
         // Label alignment and offset based on position to avoid clipping
         ctx.save();
-        ctx.font = "600 11px Inter, sans-serif";
-        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+        ctx.font = "700 12px Inter, sans-serif";
+        ctx.fillStyle = "#ffffff";
         
         if (Math.abs(cosAngle) < 0.1) {
             ctx.textAlign = "center";
@@ -892,7 +891,7 @@ function drawRadarChart(scores) {
             "security": "Security",
             "links": "Links",
         };
-        const labelText = shortNames[key] || cat.name;
+        const labelText = `${shortNames[key] || cat.name} (${cat.score}%)`;
         ctx.fillText(labelText, lx, ly);
         ctx.restore();
 
