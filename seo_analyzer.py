@@ -834,6 +834,20 @@ class SEOAnalyzer:
             )
             self.load_time = round(time.time() - start, 3)
             
+            if self.response.status_code in (403, 406, 429):
+                # Fallback request with Googlebot User-Agent to bypass strict scraper blocks
+                fb_headers = {
+                    "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)",
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.5",
+                }
+                try:
+                    fb_resp = requests.get(self.url, headers=fb_headers, timeout=15, allow_redirects=True)
+                    if fb_resp.status_code < 400:
+                        self.response = fb_resp
+                except Exception:
+                    pass
+
             if self.response.status_code >= 400:
                 self.error = f"Website returned error HTTP {self.response.status_code} ({self.response.reason}). This page cannot be analyzed."
                 return False
