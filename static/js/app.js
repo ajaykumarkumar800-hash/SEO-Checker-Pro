@@ -1734,11 +1734,12 @@ function showRateLimitOverlay() {
 }
 
 function checkAndTriggerClientSidePageSpeed(data) {
+    if (!data || !data.checks) return;
     const mobileCheck = (data.checks.performance || []).find(c => c.name === "PageSpeed Insights (Mobile)");
     const desktopCheck = (data.checks.performance || []).find(c => c.name === "PageSpeed Insights (Desktop)");
     
-    let needsMobile = mobileCheck && mobileCheck.details && mobileCheck.details.data_source && mobileCheck.details.data_source.includes("Local Page Auditing");
-    let needsDesktop = desktopCheck && desktopCheck.details && desktopCheck.details.data_source && desktopCheck.details.data_source.includes("Local Page Auditing");
+    let needsMobile = !mobileCheck || (mobileCheck.details && mobileCheck.details.data_source && !mobileCheck.details.data_source.includes("Client-Side Live"));
+    let needsDesktop = !desktopCheck || (desktopCheck.details && desktopCheck.details.data_source && !desktopCheck.details.data_source.includes("Client-Side Live"));
     
     if (!needsMobile && !needsDesktop) return;
     

@@ -2808,7 +2808,8 @@ class SEOAnalyzer:
                     if api_key:
                         api_url += f"&key={api_key}"
                         
-                    resp = requests.get(api_url, timeout=45)
+                    headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+                    resp = requests.get(api_url, headers=headers, timeout=45)
                     print(f"--- Google API Status Code: {resp.status_code} ---")
                     if resp.status_code == 200:
                         data = resp.json()
