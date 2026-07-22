@@ -2327,10 +2327,38 @@ function updateSerpPreview() {
     const desc = document.getElementById('simDesc')?.value || '';
 
     const titleChar = document.getElementById('serpTitleChar');
-    if (titleChar) titleChar.textContent = `${title.length} / 60 chars`;
+    if (titleChar) {
+        const len = title.length;
+        let status = `${len} / 60 chars`;
+        if (len >= 50 && len <= 60) {
+            titleChar.style.color = '#34d399';
+            status += ' (Optimal)';
+        } else if (len > 60) {
+            titleChar.style.color = '#f87171';
+            status += ' (Truncated)';
+        } else {
+            titleChar.style.color = '#fbbf24';
+            status += ' (Too Short)';
+        }
+        titleChar.textContent = status;
+    }
     
     const descChar = document.getElementById('serpDescChar');
-    if (descChar) descChar.textContent = `${desc.length} / 160 chars`;
+    if (descChar) {
+        const len = desc.length;
+        let status = `${len} / 160 chars`;
+        if (len >= 120 && len <= 160) {
+            descChar.style.color = '#34d399';
+            status += ' (Optimal)';
+        } else if (len > 160) {
+            descChar.style.color = '#f87171';
+            status += ' (Truncated)';
+        } else {
+            descChar.style.color = '#fbbf24';
+            status += ' (Too Short)';
+        }
+        descChar.textContent = status;
+    }
 
     const gTitle = document.getElementById('gserpTitle');
     if (gTitle) gTitle.textContent = title || 'Enter Page Title...';

@@ -43,13 +43,20 @@ def sanitize_report_data(data):
     if isinstance(data, dict):
         new_dict = {}
         for k, v in data.items():
-            if k in ["total_tables", "total_iframes", "placeholder_links", "images_no_dims"]:
+            if v is None:
+                if any(sub in k for sub in ["score", "total", "count", "time", "checks", "passed", "failed", "warnings", "info", "tables", "iframes"]):
+                    new_dict[k] = 0
+                else:
+                    new_dict[k] = "Not Specified"
+            elif k in ["total_tables", "total_iframes", "placeholder_links", "images_no_dims"]:
                 new_dict[k] = sanitize_metric_value(v)
             else:
                 new_dict[k] = sanitize_report_data(v)
         return new_dict
     elif isinstance(data, list):
         return [sanitize_report_data(x) for x in data]
+    elif data is None:
+        return "Not Specified"
     return data
 
 try:
@@ -89,28 +96,58 @@ def extract_open_graph_tags(page):
 
 def extract_open_graph_tags_fallback(soup):
     """
-    Antigravity Engine: Open Graph Tags Auditor (BeautifulSoup Fallback)
+    Antigravity Engine: Open Graph & Social Card Tags Auditor (BeautifulSoup Fallback)
     """
     og_metrics = {
-        "og:title": None,
-        "og:description": None,
-        "og:image": None,
-        "og:url": None,
+        "og:title": "Not Specified",
+        "og:description": "Not Specified",
+        "og:image": "Not Specified",
+        "og:url": "Not Specified",
+        "twitter:card": "Not Specified",
+        "twitter:title": "Not Specified",
+        "twitter:description": "Not Specified",
+        "twitter:image": "Not Specified",
         "status": "Missing"
     }
     try:
         import re
-        meta_tags = soup.find_all("meta", property=re.compile(r"^og:"))
+        # 1. Parse Open Graph tags
+        meta_og = soup.find_all("meta", property=re.compile(r"^og:", re.I))
         found_tags = 0
-        for tag in meta_tags:
-            prop = tag.get("property")
+        for tag in meta_og:
+            prop = (tag.get("property") or "").lower()
             content = tag.get("content")
-            if prop in og_metrics:
+            if prop in og_metrics and content:
                 og_metrics[prop] = content
                 found_tags += 1
-        if found_tags == 4:
+
+        # 2. Parse Twitter Card tags
+        meta_tw = soup.find_all("meta", attrs={"name": re.compile(r"^twitter:", re.I)})
+        for tag in meta_tw:
+            name = (tag.get("name") or "").lower()
+            content = tag.get("content")
+            if name in og_metrics and content:
+                og_metrics[name] = content
+
+        # 3. Fallbacks from standard HTML tags if OG tags missing
+        if og_metrics["og:title"] == "Not Specified":
+            t_tag = soup.find("title")
+            if t_tag and t_tag.string:
+                og_metrics["og:title"] = t_tag.string.strip()
+
+        if og_metrics["og:description"] == "Not Specified":
+            m_desc = soup.find("meta", attrs={"name": re.compile(r"^description$", re.I)})
+            if m_desc and m_desc.get("content"):
+                og_metrics["og:description"] = m_desc.get("content").strip()
+
+        if og_metrics["og:url"] == "Not Specified":
+            c_link = soup.find("link", rel=re.compile(r"^canonical$", re.I))
+            if c_link and c_link.get("href"):
+                og_metrics["og:url"] = c_link.get("href").strip()
+
+        if found_tags >= 3:
             og_metrics["status"] = "Fully Optimized"
-        elif found_tags > 0:
+        elif found_tags > 0 or og_metrics["og:title"] != "Not Specified":
             og_metrics["status"] = "Partially Optimized"
         return og_metrics
     except Exception as e:
@@ -1231,10 +1268,19 @@ def rank_tracker():
                 soup = BeautifulSoup(r.text, "html.parser")
                 links = soup.find_all("a", class_="result__url")
                 for idx, link in enumerate(links, 1):
-                    href = link.get("href", "").lower()
-                    if clean_domain in href:
+                    raw_href = (link.get("href") or "").strip()
+                    href_lower = raw_href.lower()
+                    if clean_domain in href_lower:
                         real_pos = idx
-                        target_url = href.strip()
+                        if "uddg=" in raw_href:
+                            import urllib.parse
+                            parsed_qs = urllib.parse.parse_qs(urllib.parse.urlparse(raw_href).query)
+                            if "uddg" in parsed_qs and parsed_qs["uddg"]:
+                                target_url = parsed_qs["uddg"][0]
+                            else:
+                                target_url = raw_href
+                        else:
+                            target_url = raw_href
                         break
         except Exception as e:
             safe_log(f"Live SERP rank check failed for '{kw}': {str(e)}")
