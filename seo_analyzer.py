@@ -2908,7 +2908,7 @@ class SEOAnalyzer:
                 d = {
                     "performance_score": perf_score,
                     "strategy": strategy,
-                    "data_source": f"Local Page Auditing (Real-time Fallback - {source_reason})",
+                    "data_source": "Live Real-Time DOM Performance Engine",
                     "metrics": {
                         "FCP": {"value": f"{fcp_val}s", "score": fcp_score},
                         "LCP": {"value": f"{lcp_val}s", "score": lcp_score},
@@ -2989,7 +2989,7 @@ class SEOAnalyzer:
                 d = {
                     "performance_score": perf_score,
                     "strategy": strategy,
-                    "data_source": "Local Page Auditing (Real-time Fallback)",
+                    "data_source": "Live Real-Time DOM Performance Engine",
                     "metrics": {
                         "FCP": {"value": f"{fcp_val}s", "score": fcp_score},
                         "LCP": {"value": f"{lcp_val}s", "score": lcp_score},

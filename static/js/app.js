@@ -2355,9 +2355,16 @@ function exportAuditCSV() {
    ═══════════════════════════════════════════════ */
 
 let historyChartInstance = null;
+let dashHistoryChartInstance = null;
 
 function loadHistoricalScoreGraph(targetUrl) {
-    if (!targetUrl) return;
+    if (!targetUrl) {
+        if (currentReport && (currentReport.final_url || currentReport.url)) {
+            targetUrl = currentReport.final_url || currentReport.url;
+        } else {
+            targetUrl = "https://example.com";
+        }
+    }
 
     fetch("/api/score-history", {
         method: "POST",
@@ -2374,80 +2381,122 @@ function loadHistoricalScoreGraph(targetUrl) {
 }
 
 function renderHistoryChart(data) {
-    const canvas = document.getElementById("historyChart");
-    if (!canvas) return;
-
-    const badge = document.getElementById("histImprovementBadge");
-    if (badge) {
-        badge.textContent = data.score_improvement || "+0%";
-        badge.style.color = (data.score_improvement || "").startsWith("-") ? "#ef4444" : "#34d399";
-    }
+    const badges = [document.getElementById("histImprovementBadge"), document.getElementById("dashHistBadge")];
+    badges.forEach(badge => {
+        if (badge) {
+            badge.textContent = data.score_improvement || "+0%";
+            badge.style.color = (data.score_improvement || "").startsWith("-") ? "#f87171" : "#34d399";
+        }
+    });
 
     const labels = data.history.map(h => h.date);
     const scores = data.history.map(h => h.score);
 
-    if (historyChartInstance) {
-        historyChartInstance.destroy();
-    }
-
     if (typeof Chart === "undefined") return;
 
-    const ctx = canvas.getContext("2d");
-    const gradient = ctx.createLinearGradient(0, 0, 0, 260);
-    gradient.addColorStop(0, "rgba(52, 211, 153, 0.35)");
-    gradient.addColorStop(1, "rgba(52, 211, 153, 0.0)");
+    // 1. Render on #historyChart
+    const canvas1 = document.getElementById("historyChart");
+    if (canvas1) {
+        if (historyChartInstance) historyChartInstance.destroy();
+        const ctx1 = canvas1.getContext("2d");
+        const gradient1 = ctx1.createLinearGradient(0, 0, 0, 260);
+        gradient1.addColorStop(0, "rgba(52, 211, 153, 0.4)");
+        gradient1.addColorStop(1, "rgba(52, 211, 153, 0.0)");
 
-    historyChartInstance = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: labels,
-            datasets: [{
-                label: "SEO Score Trend",
-                data: scores,
-                borderColor: "#34d399",
-                borderWidth: 3,
-                backgroundColor: gradient,
-                fill: true,
-                tension: 0.35,
-                pointRadius: 6,
-                pointHoverRadius: 8,
-                pointBackgroundColor: "#34d399",
-                pointBorderColor: "#ffffff",
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: "rgba(15, 23, 42, 0.95)",
-                    titleColor: "#ffffff",
-                    bodyColor: "#34d399",
-                    padding: 12,
-                    displayColors: false,
-                    callbacks: {
-                        label: function(ctx) {
-                            return `SEO Audit Score: ${ctx.parsed.y}%`;
+        historyChartInstance = new Chart(ctx1, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "SEO Score Trend",
+                    data: scores,
+                    borderColor: "#34d399",
+                    borderWidth: 3,
+                    backgroundColor: gradient1,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: "#34d399",
+                    pointBorderColor: "#ffffff",
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "rgba(15, 23, 42, 0.95)",
+                        titleColor: "#ffffff",
+                        bodyColor: "#34d399",
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(ctx) { return `SEO Score: ${ctx.parsed.y}%`; }
                         }
                     }
-                }
-            },
-            scales: {
-                x: {
-                    grid: { color: "rgba(255, 255, 255, 0.06)" },
-                    ticks: { color: "#94a3b8" }
                 },
-                y: {
-                    min: 0,
-                    max: 100,
-                    grid: { color: "rgba(255, 255, 255, 0.06)" },
-                    ticks: { color: "#94a3b8", stepSize: 20 }
+                scales: {
+                    x: { grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", font: { weight: '600' } } },
+                    y: { min: 0, max: 100, grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", stepSize: 20, font: { weight: '600' } } }
                 }
             }
-        }
-    });
+        });
+    }
+
+    // 2. Render on #dashHistoryChart
+    const canvas2 = document.getElementById("dashHistoryChart");
+    if (canvas2) {
+        if (dashHistoryChartInstance) dashHistoryChartInstance.destroy();
+        const ctx2 = canvas2.getContext("2d");
+        const gradient2 = ctx2.createLinearGradient(0, 0, 0, 260);
+        gradient2.addColorStop(0, "rgba(99, 102, 241, 0.4)");
+        gradient2.addColorStop(1, "rgba(99, 102, 241, 0.0)");
+
+        dashHistoryChartInstance = new Chart(ctx2, {
+            type: "line",
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: "Operations Score Trend",
+                    data: scores,
+                    borderColor: "#818cf8",
+                    borderWidth: 3,
+                    backgroundColor: gradient2,
+                    fill: true,
+                    tension: 0.35,
+                    pointRadius: 6,
+                    pointHoverRadius: 8,
+                    pointBackgroundColor: "#818cf8",
+                    pointBorderColor: "#ffffff",
+                    pointBorderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: "rgba(15, 23, 42, 0.95)",
+                        titleColor: "#ffffff",
+                        bodyColor: "#818cf8",
+                        padding: 12,
+                        displayColors: false,
+                        callbacks: {
+                            label: function(ctx) { return `Operations Score: ${ctx.parsed.y}%`; }
+                        }
+                    }
+                },
+                scales: {
+                    x: { grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", font: { weight: '600' } } },
+                    y: { min: 0, max: 100, grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", stepSize: 20, font: { weight: '600' } } }
+                }
+            }
+        });
+    }
 }
 
 /* ═══════════════════════════════════════════════

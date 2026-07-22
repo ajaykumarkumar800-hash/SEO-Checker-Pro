@@ -276,6 +276,29 @@
                 </div>
             </div>
 
+            <!-- Dashboard Historical Score Progress Graph -->
+            <div style="margin: 25px 0 35px; background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 26px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+                    <div>
+                        <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px; height:20px; color: #818cf8;"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                            Historical SEO Score Progress (30-Day Growth)
+                        </h3>
+                        <p style="font-size: 0.88rem; color: #cbd5e1;">Track site health improvements and audit progression curve over time.</p>
+                    </div>
+                    <div style="display: flex; gap: 16px; align-items: center;">
+                        <div style="text-align: right;">
+                            <span style="font-size: 0.75rem; color: #cbd5e1; display: block; font-weight: 600;">30-Day Score Growth</span>
+                            <span id="dashHistBadge" style="font-weight: 800; color: #34d399; font-size: 1.2rem;">+22%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="position: relative; height: 240px; width: 100%;">
+                    <canvas id="dashHistoryChart"></canvas>
+                </div>
+            </div>
+
             <!-- Recent Audited Projects Table -->
             <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 26px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
