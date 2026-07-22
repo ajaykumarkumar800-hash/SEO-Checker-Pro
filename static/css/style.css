@@ -563,7 +563,7 @@ td {
         print-color-adjust: exact;
         font-variant-numeric: slashed-zero;
     }
-    .bg-grid, .bg-glow, .header, .hero, .loading-section, .results-section, .footer, .compare-section, .history-section, .gsc-section, .footer-support-section, .seo-education-section {
+    .app-wrapper, .bg-grid, .bg-glow, .header, .hero, .loading-section, .results-section, .footer, .compare-section, .history-section, .gsc-section, .footer-support-section, .seo-education-section, .pro-tool-section, .sidebar {
         display: none !important;
     }
     .print-only-report {
