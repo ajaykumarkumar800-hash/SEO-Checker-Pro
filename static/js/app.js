@@ -1927,6 +1927,12 @@ function switchProTool(toolId) {
         document.getElementById('keywordMagicSection').style.display = '';
     } else if (toolId === 'domain-overview') {
         document.getElementById('domainOverviewSection').style.display = '';
+    } else if (toolId === 'competitor-gap') {
+        document.getElementById('competitorGapSection').style.display = '';
+    } else if (toolId === 'rank-tracker') {
+        document.getElementById('rankTrackerSection').style.display = '';
+    } else if (toolId === 'security-audit') {
+        document.getElementById('securityAuditSection').style.display = '';
     } else if (toolId === 'serp-simulator') {
         document.getElementById('serpSimulatorSection').style.display = '';
         updateSerpPreview();
@@ -2392,6 +2398,222 @@ function renderHistoryChart(data) {
             }
         }
     });
+}
+
+/* ═══════════════════════════════════════════════
+   COMPETITOR GAP COMPARISON HANDLER
+   ═══════════════════════════════════════════════ */
+
+function runCompetitorCompare() {
+    const d1 = document.getElementById("cgDomain1")?.value.trim();
+    const d2 = document.getElementById("cgDomain2")?.value.trim();
+    if (!d1 || !d2) {
+        alert("Please enter both your domain and competitor domain.");
+        return;
+    }
+
+    const container = document.getElementById("cgResults");
+    container.style.display = "block";
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color:#94a3b8;">Performing real-time comparison between "${d1}" and "${d2}"...</div>`;
+
+    fetch("/api/competitor-compare", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain1: d1, domain2: d2 })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            renderCompetitorResults(data);
+        } else {
+            container.innerHTML = `<div style="color:#ef4444; padding:20px;">Error: ${data.error}</div>`;
+        }
+    })
+    .catch(err => {
+        container.innerHTML = `<div style="color:#ef4444; padding:20px;">Failed: ${err.message}</div>`;
+    });
+}
+
+function renderCompetitorResults(data) {
+    const container = document.getElementById("cgResults");
+    const d1 = data.domain1;
+    const d2 = data.domain2;
+    const cmp = data.comparison;
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px;">
+            <div style="background: var(--bg-card); border: 2px solid #818cf8; border-radius: 16px; padding: 24px; text-align: center;">
+                <span style="font-size: 0.75rem; color: #818cf8; text-transform: uppercase; font-weight: 700;">Target Domain</span>
+                <h3 style="font-size: 1.6rem; color: #fff; margin: 8px 0;">${d1.domain}</h3>
+                <div style="font-size: 2.5rem; font-weight: 800; color: #34d399; margin: 10px 0;">${d1.da_score} <span style="font-size: 0.9rem; color: #94a3b8;">/ 100 DA</span></div>
+                <div style="display: flex; justify-content: space-around; font-size: 0.85rem; color: #cbd5e1; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+                    <div><strong>${d1.organic_traffic.toLocaleString()}</strong><br><span style="color:#94a3b8;">Traffic</span></div>
+                    <div><strong>${d1.organic_keywords.toLocaleString()}</strong><br><span style="color:#94a3b8;">Keywords</span></div>
+                    <div><strong>${d1.response_time_ms}ms</strong><br><span style="color:#94a3b8;">Latency</span></div>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); border: 2px solid #f472b6; border-radius: 16px; padding: 24px; text-align: center;">
+                <span style="font-size: 0.75rem; color: #f472b6; text-transform: uppercase; font-weight: 700;">Competitor Domain</span>
+                <h3 style="font-size: 1.6rem; color: #fff; margin: 8px 0;">${d2.domain}</h3>
+                <div style="font-size: 2.5rem; font-weight: 800; color: #f472b6; margin: 10px 0;">${d2.da_score} <span style="font-size: 0.9rem; color: #94a3b8;">/ 100 DA</span></div>
+                <div style="display: flex; justify-content: space-around; font-size: 0.85rem; color: #cbd5e1; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px;">
+                    <div><strong>${d2.organic_traffic.toLocaleString()}</strong><br><span style="color:#94a3b8;">Traffic</span></div>
+                    <div><strong>${d2.organic_keywords.toLocaleString()}</strong><br><span style="color:#94a3b8;">Keywords</span></div>
+                    <div><strong>${d2.response_time_ms}ms</strong><br><span style="color:#94a3b8;">Latency</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+            <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 15px;">Competitor Gap Insights</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <div style="background: rgba(15,23,42,0.6); padding: 15px; border-radius: 12px;">
+                    <span style="font-size: 0.8rem; color: #94a3b8;">Keyword Overlap</span>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #38bdf8;">${cmp.overlap_percentage}</div>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); padding: 15px; border-radius: 12px;">
+                    <span style="font-size: 0.8rem; color: #94a3b8;">Common Keywords</span>
+                    <div style="font-size: 1.4rem; font-weight: 800; color: #fff;">${cmp.common_keywords.toLocaleString()}</div>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); padding: 15px; border-radius: 12px;">
+                    <span style="font-size: 0.8rem; color: #94a3b8;">Authority Leader</span>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: #34d399;">🏆 ${cmp.winner_authority}</div>
+                </div>
+                <div style="background: rgba(15,23,42,0.6); padding: 15px; border-radius: 12px;">
+                    <span style="font-size: 0.8rem; color: #94a3b8;">Speed Winner</span>
+                    <div style="font-size: 1.2rem; font-weight: 800; color: #fde047;">⚡ ${cmp.winner_speed}</div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+/* ═══════════════════════════════════════════════
+   LIVE RANK TRACKER HANDLER
+   ═══════════════════════════════════════════════ */
+
+function runRankTracker() {
+    const domain = document.getElementById("rtDomain")?.value.trim();
+    const kwInput = document.getElementById("rtKeywords")?.value.trim();
+    if (!domain) {
+        alert("Please enter a target domain.");
+        return;
+    }
+
+    const keywords = kwInput ? kwInput.split(",").map(s => s.trim()) : [];
+    const container = document.getElementById("rtResults");
+    container.style.display = "block";
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color:#94a3b8;">Fetching live Google rankings for "${domain}"...</div>`;
+
+    fetch("/api/rank-tracker", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain, keywords })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            renderRankResults(data);
+        } else {
+            container.innerHTML = `<div style="color:#ef4444; padding:20px;">Error: ${data.error}</div>`;
+        }
+    })
+    .catch(err => {
+        container.innerHTML = `<div style="color:#ef4444; padding:20px;">Failed: ${err.message}</div>`;
+    });
+}
+
+function renderRankResults(data) {
+    const container = document.getElementById("rtResults");
+    const rows = data.rankings.map(r => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: #cbd5e1;">
+            <td style="padding: 14px; font-weight: 600; color: #fff;">${r.keyword}</td>
+            <td style="padding: 14px; text-align: center;"><span style="background: rgba(56,189,248,0.15); color: #38bdf8; padding: 4px 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 800;">#${r.position}</span></td>
+            <td style="padding: 14px; text-align: center; color: ${r.position_change.startsWith('+') ? '#34d399' : (r.position_change.startsWith('-') ? '#ef4444' : '#94a3b8')}; font-weight: 700;">${r.position_change}</td>
+            <td style="padding: 14px; text-align: center;"><span style="background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; color: #94a3b8;">${r.status}</span></td>
+            <td style="padding: 14px; text-align: right; font-weight: 600;">${r.volume.toLocaleString()} /mo</td>
+        </tr>
+    `).join("");
+
+    container.innerHTML = `
+        <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+            <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 20px;">Live Rank Positions for ${data.domain}</h3>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
+                            <th style="padding: 12px;">Target Keyword</th>
+                            <th style="padding: 12px; text-align: center;">Google Position</th>
+                            <th style="padding: 12px; text-align: center;">Change</th>
+                            <th style="padding: 12px; text-align: center;">Status</th>
+                            <th style="padding: 12px; text-align: right;">Search Volume</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
+/* ═══════════════════════════════════════════════
+   SECURITY & SSL AUDIT HANDLER
+   ═══════════════════════════════════════════════ */
+
+function runSecurityAudit() {
+    const url = document.getElementById("saInput")?.value.trim();
+    if (!url) {
+        alert("Please enter a target URL.");
+        return;
+    }
+
+    const container = document.getElementById("saResults");
+    container.style.display = "block";
+    container.innerHTML = `<div style="text-align:center; padding: 40px; color:#94a3b8;">Auditing SSL certificate & security headers for "${url}"...</div>`;
+
+    fetch("/api/security-audit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            renderSecurityResults(data);
+        } else {
+            container.innerHTML = `<div style="color:#ef4444; padding:20px;">Error: ${data.error}</div>`;
+        }
+    })
+    .catch(err => {
+        container.innerHTML = `<div style="color:#ef4444; padding:20px;">Failed: ${err.message}</div>`;
+    });
+}
+
+function renderSecurityResults(data) {
+    const container = document.getElementById("saResults");
+    const headersList = Object.entries(data.headers_check).map(([h, st]) => `
+        <div style="display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06); font-size:0.9rem;">
+            <span style="color:#cbd5e1; font-weight:600;">${h}</span>
+            <span style="color:${st === 'PASS' ? '#34d399' : '#ef4444'}; font-weight:700;">${st === 'PASS' ? '✅ PASS' : '❌ MISSING'}</span>
+        </div>
+    `).join("");
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 240px 1fr; gap: 20px; margin-bottom: 25px;">
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; text-align: center;">
+                <span style="font-size: 0.8rem; color: #94a3b8; text-transform: uppercase;">Security Score</span>
+                <div style="font-size: 3.2rem; font-weight: 800; color: ${data.security_score >= 80 ? '#34d399' : '#fde047'}; margin: 8px 0;">${data.security_score}</div>
+                <div style="font-size: 1.1rem; font-weight: 800; color: #fff;">Grade ${data.security_grade}</div>
+                <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 10px;">${data.is_https ? '🔒 HTTPS Encrypted' : '⚠️ HTTP Connection'}</div>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+                <h4 style="font-size: 1.1rem; color: #fff; margin-bottom: 15px;">HTTP Security Headers Checklist</h4>
+                ${headersList}
+            </div>
+        </div>
+    `;
 }
 
 

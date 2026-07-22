@@ -58,25 +58,37 @@
                 <span class="logo-text">SEO Checker <span class="logo-accent">Pro</span></span>
             </a>
             
-            <nav class="pro-suite-nav" style="display: flex; gap: 6px; background: rgba(15,23,42,0.8); padding: 4px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.1);">
+            <nav class="pro-suite-nav" style="display: flex; gap: 6px; background: rgba(15,23,42,0.8); padding: 4px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.1); flex-wrap: wrap;">
                 <button class="pro-nav-btn active" id="pnav-dashboard" onclick="switchProTool('dashboard')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     Dashboard
                 </button>
                 <button class="pro-nav-btn" id="pnav-site-audit" onclick="switchProTool('site-audit')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     Site Audit
                 </button>
                 <button class="pro-nav-btn" id="pnav-keyword-magic" onclick="switchProTool('keyword-magic')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
                     Keyword Magic
                 </button>
                 <button class="pro-nav-btn" id="pnav-domain-overview" onclick="switchProTool('domain-overview')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
                     Domain Overview
                 </button>
+                <button class="pro-nav-btn" id="pnav-competitor-gap" onclick="switchProTool('competitor-gap')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    Competitor Gap
+                </button>
+                <button class="pro-nav-btn" id="pnav-rank-tracker" onclick="switchProTool('rank-tracker')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                    Rank Tracker
+                </button>
+                <button class="pro-nav-btn" id="pnav-security-audit" onclick="switchProTool('security-audit')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    Security Audit
+                </button>
                 <button class="pro-nav-btn" id="pnav-serp-simulator" onclick="switchProTool('serp-simulator')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                     SERP Simulator
                 </button>
             </nav>
@@ -318,6 +330,65 @@
             </div>
 
             <div id="doResults" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ── COMPETITOR GAP COMPARISON SECTION ── -->
+    <div id="competitorGapSection" class="pro-tool-section" style="display:none; padding: 40px 0;">
+        <div class="container">
+            <div class="tool-header" style="text-align: center; max-width: 680px; margin: 0 auto 30px;">
+                <span class="hero-badge" style="background: rgba(236,72,153,0.15); color: #f472b6; border: 1px solid rgba(236,72,153,0.3);">Side-by-Side Analysis</span>
+                <h2 style="font-size: 2.2rem; font-weight: 800; margin: 12px 0; color: #fff;">Domain Competitor Gap Analysis</h2>
+                <p style="color: #94a3b8; font-size: 1rem;">Compare your target domain against any rival domain to uncover authority, speed, and keyword gaps.</p>
+            </div>
+
+            <div style="max-width: 780px; margin: 0 auto 30px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <input type="text" id="cgDomain1" class="search-input" placeholder="Your Domain (e.g. mysite.com)" autocomplete="off" style="width:100%;">
+                <input type="text" id="cgDomain2" class="search-input" placeholder="Competitor Domain (e.g. rival.com)" autocomplete="off" style="width:100%;">
+                <button class="search-btn" onclick="runCompetitorCompare()" style="white-space: nowrap;">Compare Domains</button>
+            </div>
+
+            <div id="cgResults" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ── RANK TRACKER SECTION ── -->
+    <div id="rankTrackerSection" class="pro-tool-section" style="display:none; padding: 40px 0;">
+        <div class="container">
+            <div class="tool-header" style="text-align: center; max-width: 680px; margin: 0 auto 30px;">
+                <span class="hero-badge" style="background: rgba(14,165,233,0.15); color: #38bdf8; border: 1px solid rgba(14,165,233,0.3);">Google SERP Rank Position</span>
+                <h2 style="font-size: 2.2rem; font-weight: 800; margin: 12px 0; color: #fff;">Live Keyword Rank Tracker</h2>
+                <p style="color: #94a3b8; font-size: 1rem;">Track live Google search engine ranking positions (#1 to #100) and SERP snippet features for target keywords.</p>
+            </div>
+
+            <div style="max-width: 780px; margin: 0 auto 30px; display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; background: var(--bg-card); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <input type="text" id="rtDomain" class="search-input" placeholder="Enter Domain (e.g. wikipedia.org)" autocomplete="off">
+                <input type="text" id="rtKeywords" class="search-input" placeholder="Keywords (comma separated)" autocomplete="off">
+                <button class="search-btn" onclick="runRankTracker()">Track Rankings</button>
+            </div>
+
+            <div id="rtResults" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- ── SECURITY AUDIT SECTION ── -->
+    <div id="securityAuditSection" class="pro-tool-section" style="display:none; padding: 40px 0;">
+        <div class="container">
+            <div class="tool-header" style="text-align: center; max-width: 680px; margin: 0 auto 30px;">
+                <span class="hero-badge" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3);">SSL & Technical Security</span>
+                <h2 style="font-size: 2.2rem; font-weight: 800; margin: 12px 0; color: #fff;">Security & SSL Header Audit</h2>
+                <p style="color: #94a3b8; font-size: 1rem;">Audit live SSL certificate status, HSTS enforcement, CSP headers, and Clickjacking vulnerability protections.</p>
+            </div>
+
+            <div class="search-box" style="max-width: 680px; margin: 0 auto 30px;">
+                <div class="search-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </div>
+                <input type="text" id="saInput" class="search-input" placeholder="Enter URL (e.g. https://example.com)" autocomplete="off">
+                <button class="search-btn" onclick="runSecurityAudit()">Audit Security</button>
+            </div>
+
+            <div id="saResults" style="display:none;"></div>
         </div>
     </div>
 
