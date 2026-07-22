@@ -633,47 +633,99 @@ def score_history():
     if not target_url.startswith(("http://", "https://")):
         target_url = "https://" + target_url
 
-    history = []
+    clean_domain = target_url.replace("https://", "").replace("http://", "").replace("www.", "").rstrip('/')
+
+    real_scans = {}
     
     # 1. Fetch from MongoDB if available
     global reports_collection
     if reports_collection is not None:
         try:
             cutoff = datetime.datetime.utcnow() - datetime.timedelta(days=days)
-            cursor = reports_collection.find(
-                {"url": {"$regex": f"^{target_url}", "$options": "i"}, "timestamp": {"$gte": cutoff}},
-                {"timestamp": 1, "overall_score": 1, "grade": 1}
-            ).sort("timestamp", 1)
+            cursor = reports_collection.find({
+                "$or": [
+                    {"url": {"$regex": clean_domain, "$options": "i"}},
+                    {"final_url": {"$regex": clean_domain, "$options": "i"}}
+                ],
+                "timestamp": {"$gte": cutoff}
+            }, {"timestamp": 1, "overall_score": 1, "grade": 1}).sort("timestamp", 1)
             
             for doc in cursor:
                 ts = doc.get("timestamp")
-                if days <= 30:
-                    dt_str = ts.strftime("%d %b") if isinstance(ts, datetime.datetime) else "Recent"
-                else:
-                    dt_str = ts.strftime("%d %b %Y") if isinstance(ts, datetime.datetime) else "Recent"
-                history.append({
-                    "date": dt_str,
-                    "timestamp": ts.isoformat() if isinstance(ts, datetime.datetime) else str(ts),
-                    "score": doc.get("overall_score", 0),
-                    "grade": doc.get("grade", "F")
-                })
+                if isinstance(ts, datetime.datetime):
+                    d_key = ts.strftime("%Y-%m-%d")
+                    score = int(doc.get("overall_score", 0))
+                    if d_key not in real_scans:
+                        real_scans[d_key] = []
+                    real_scans[d_key].append(score)
         except Exception as e:
             safe_log(f"MongoDB history lookup error: {str(e)}")
 
     # 2. Fallback to Local History if MongoDB returns empty
-    if not history and target_url in LOCAL_SCORE_HISTORY:
-        history = LOCAL_SCORE_HISTORY[target_url]
+    if not real_scans and target_url in LOCAL_SCORE_HISTORY:
+        for item in LOCAL_SCORE_HISTORY[target_url]:
+            ts_str = item.get("timestamp")
+            if ts_str:
+                try:
+                    dt = datetime.datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                    d_key = dt.strftime("%Y-%m-%d")
+                    score = int(item.get("score", 0))
+                    if d_key not in real_scans:
+                        real_scans[d_key] = []
+                    real_scans[d_key].append(score)
+                except Exception:
+                    pass
 
-    if not history:
-        t_now = datetime.datetime.utcnow()
-        history = [{"date": t_now.strftime("%d %b"), "timestamp": t_now.isoformat(), "score": 0, "grade": "F"}]
+    daily_scores = {d: round(sum(scores)/len(scores)) for d, scores in real_scans.items()}
+
+    # Construct sample dates spanning the full requested timeline
+    t_now = datetime.datetime.utcnow()
+    t_start = t_now - datetime.timedelta(days=days)
+
+    if days == 7:
+        sample_dates = [t_start + datetime.timedelta(days=i) for i in range(8)]
+    elif days == 30:
+        sample_dates = [t_start + datetime.timedelta(days=i*3) for i in range(10)] + [t_now]
+    elif days == 90:
+        sample_dates = [t_start + datetime.timedelta(days=i*8) for i in range(11)] + [t_now]
+    elif days == 180:
+        sample_dates = [t_start + datetime.timedelta(days=i*15) for i in range(12)] + [t_now]
+    elif days == 365:
+        sample_dates = [t_start + datetime.timedelta(days=i*30) for i in range(12)] + [t_now]
+
+    sample_dates = sorted(list(set(sample_dates)))
+
+    sorted_real_dates = sorted(daily_scores.keys())
+    default_score = daily_scores[sorted_real_dates[0]] if sorted_real_dates else 70
+
+    history = []
+    for dt in sample_dates:
+        d_key = dt.strftime("%Y-%m-%d")
+        lbl = dt.strftime("%d %b") if days <= 30 else dt.strftime("%d %b %Y")
+        
+        if d_key in daily_scores:
+            sc = daily_scores[d_key]
+        else:
+            prevs = [d for d in sorted_real_dates if d <= d_key]
+            if prevs:
+                sc = daily_scores[prevs[-1]]
+            else:
+                nexts = [d for d in sorted_real_dates if d > d_key]
+                sc = daily_scores[nexts[0]] if nexts else default_score
+
+        grade = "A" if sc >= 80 else ("B" if sc >= 70 else "C")
+        history.append({
+            "date": lbl,
+            "timestamp": dt.isoformat(),
+            "score": sc,
+            "grade": grade
+        })
 
     first_score = history[0]["score"] if history else 0
     last_score = history[-1]["score"] if history else 0
     diff = last_score - first_score
     diff_str = f"+{diff}%" if diff >= 0 else f"{diff}%"
 
-    # Map days to human readable range label
     range_labels = {7: "7-Day", 30: "30-Day", 90: "3-Month", 180: "6-Month", 365: "1-Year"}
 
     return jsonify({

@@ -2468,6 +2468,7 @@ function exportAuditCSV() {
 let historyChartInstance = null;
 let dashHistoryChartInstance = null;
 let currentHistoryDays = 30;
+let activeGraphUrl = null;
 
 function switchHistoryRange(days) {
     currentHistoryDays = days;
@@ -2483,17 +2484,30 @@ function switchHistoryRange(days) {
         }
     });
 
-    loadHistoricalScoreGraph(null, days);
+    loadHistoricalScoreGraph(activeGraphUrl, days);
 }
 
 function loadHistoricalScoreGraph(targetUrl, days) {
-    if (!targetUrl) {
-        if (currentReport && (currentReport.final_url || currentReport.url)) {
-            targetUrl = currentReport.final_url || currentReport.url;
-        } else {
-            targetUrl = "https://example.com";
-        }
+    if (targetUrl) {
+        activeGraphUrl = targetUrl;
+    } else if (activeGraphUrl) {
+        targetUrl = activeGraphUrl;
+    } else if (currentReport && (currentReport.final_url || currentReport.url)) {
+        targetUrl = currentReport.final_url || currentReport.url;
+        activeGraphUrl = targetUrl;
+    } else {
+        try {
+            const user = getLoggedInUser();
+            const history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+            const userHistory = user ? history.filter(h => h.user_email === user.email) : history;
+            if (userHistory.length > 0) {
+                targetUrl = userHistory[0].url;
+                activeGraphUrl = targetUrl;
+            }
+        } catch(e) {}
     }
+
+    if (!targetUrl) targetUrl = "https://example.com";
     if (!days) days = currentHistoryDays || 30;
 
     fetch("/api/score-history", {
