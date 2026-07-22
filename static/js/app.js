@@ -1950,9 +1950,13 @@ function recalculateAllScores() {
 
 function saveUpdatedReportToHistory() {
     if (!currentReport) return;
+    const user = getLoggedInUser();
+    if (!user) return;
+
     try {
         let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
-        const index = history.findIndex(h => h.url === (currentReport.final_url || currentReport.url));
+        const targetUrl = currentReport.final_url || currentReport.url;
+        const index = history.findIndex(h => h.url === targetUrl && h.user_email === user.email);
         if (index !== -1) {
             history[index].score = currentReport.overall_score;
             history[index].grade = currentReport.grade;
@@ -2897,13 +2901,6 @@ function handleAuthSubmit(e) {
     .catch(err => {
         if (errorMsg) { errorMsg.textContent = "Network error. Please try again."; errorMsg.style.display = "block"; }
     });
-}
-
-function quickDemoLogin() {
-    const demoUser = { email: "user@seocheckerpro.com", name: "Pro Auditor" };
-    setLoggedInUser(demoUser);
-    closeAuthModal();
-    renderExecutiveDashboard();
 }
 
 function handleLogout() {
