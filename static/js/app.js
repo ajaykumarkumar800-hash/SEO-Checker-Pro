@@ -3249,38 +3249,49 @@ function updateAuthUI() {
     const userBox = document.getElementById("sidebarUserBox");
 
     if (user) {
+        const initials = user.name ? user.name.split(" ").map(n=>n[0]).join("").toUpperCase().slice(0,2) : "PRO";
         if (topbarBtn) {
-            topbarBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${user.name} (Log Out)`;
+            topbarBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> ${user.name} (Logout)`;
             topbarBtn.onclick = handleLogout;
-            topbarBtn.style.background = "rgba(239, 68, 68, 0.2)";
-            topbarBtn.style.border = "1px solid rgba(239, 68, 68, 0.4)";
-            topbarBtn.style.color = "#f87171";
+            topbarBtn.className = "logout-btn-premium";
         }
         if (userBox) {
             userBox.innerHTML = `
-                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
-                    <div>
-                        <div style="font-size:0.85rem; font-weight:700; color:#fff;">${user.name}</div>
-                        <div style="font-size:0.72rem; color:#cbd5e1; word-break:break-all;">${user.email}</div>
+                <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);">
+                    <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+                        <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; font-weight:800; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 12px rgba(99,102,241,0.35);">
+                            ${initials}
+                        </div>
+                        <div style="min-width:0; flex:1;">
+                            <div style="font-size:0.86rem; font-weight:800; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${user.name}</div>
+                            <div style="font-size:0.72rem; color:#cbd5e1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${user.email}</div>
+                        </div>
                     </div>
-                    <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; font-weight:700; font-size:0.78rem; cursor:pointer; text-decoration:underline;">Logout</button>
+                    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                        <span style="font-size:0.7rem; color:#34d399; font-weight:800; display:inline-flex; align-items:center; gap:5px; background:rgba(52,211,153,0.12); padding:3px 8px; border-radius:12px; border:1px solid rgba(52,211,153,0.25);">
+                            <span style="width:6px; height:6px; border-radius:50%; background:#34d399; display:inline-block; box-shadow:0 0 8px #34d399;"></span> Pro Active
+                        </span>
+                        <button onclick="handleLogout()" class="logout-btn-premium" style="font-size:0.75rem !important; padding:5px 12px !important;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout
+                        </button>
+                    </div>
                 </div>
-                <div style="margin-top:6px; font-size:0.7rem; color:#34d399; font-weight:700;">Private User History Active</div>
             `;
         }
     } else {
         if (topbarBtn) {
             topbarBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Login / Sign Up`;
             topbarBtn.onclick = openAuthModal;
+            topbarBtn.className = "";
             topbarBtn.style.background = "linear-gradient(135deg, #6366f1, #4f46e5)";
             topbarBtn.style.border = "none";
             topbarBtn.style.color = "#ffffff";
         }
         if (userBox) {
             userBox.innerHTML = `
-                <div style="text-align:center;">
-                    <div style="font-size:0.78rem; color:#cbd5e1; margin-bottom:8px;">Sign in to view your private audit history</div>
-                    <button onclick="openAuthModal()" style="width:100%; padding:8px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.3); display:flex; align-items:center; justify-content:center; gap:6px;">
+                <div style="text-align:center; background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 14px;">
+                    <div style="font-size:0.78rem; color:#cbd5e1; margin-bottom:10px; font-weight:500;">Sign in to view your private audit history</div>
+                    <button onclick="openAuthModal()" style="width:100%; padding:10px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; border-radius:10px; color:#fff; font-weight:800; font-size:0.84rem; cursor:pointer; box-shadow:0 4px 14px rgba(99,102,241,0.35); display:flex; align-items:center; justify-content:center; gap:6px; transition: all 0.2s ease;">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Login / Sign Up
                     </button>
                 </div>
