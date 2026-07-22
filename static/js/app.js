@@ -1328,7 +1328,10 @@ function togglePageSpeedStrategy(strategy) {
    ══════════════════════════════════════ */
 
 function saveToHistory(data) {
-    if (!data.success) return;
+    if (!data || !data.success) return;
+    const user = getLoggedInUser();
+    if (!user) return; // Strictly do not save to history if logged out
+
     try {
         let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
         history.unshift({
@@ -1336,9 +1339,10 @@ function saveToHistory(data) {
             score: data.overall_score,
             grade: data.grade,
             date: new Date().toISOString(),
-            checks: data.summary.total_checks,
-            passed: data.summary.passed,
-            failed: data.summary.failed,
+            checks: data.summary ? data.summary.total_checks : 0,
+            passed: data.summary ? data.summary.passed : 0,
+            failed: data.summary ? data.summary.failed : 0,
+            user_email: user.email
         });
         if (history.length > 50) history = history.slice(0, 50);
         localStorage.setItem("seo_scan_history", JSON.stringify(history));
@@ -1349,9 +1353,19 @@ function saveToHistory(data) {
 function renderHistory() {
     const el = document.getElementById("scanHistory");
     if (!el) return;
+
+    const user = getLoggedInUser();
+    if (!user) {
+        el.style.display = "none";
+        el.innerHTML = "";
+        return;
+    }
+
     try {
-        const history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
-        if (history.length === 0) { el.style.display = "none"; return; }
+        const allHistory = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+        const history = allHistory.filter(h => h.user_email === user.email);
+
+        if (history.length === 0) { el.style.display = "none"; el.innerHTML = ""; return; }
         el.style.display = "block";
         let rows = history.slice(0, 15).map(h => {
             const d = new Date(h.date);
@@ -1997,30 +2011,15 @@ function switchProTool(toolId) {
 }
 
 function renderExecutiveDashboard() {
-    let history = [];
-    try {
-        history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
-    } catch(e){}
-
+    const user = getLoggedInUser();
     const countEl = document.getElementById("dashProjCount");
     const avgEl = document.getElementById("dashAvgHealth");
     const tbody = document.getElementById("dashProjectsTable");
 
-    if (countEl) countEl.textContent = history.length || "3";
-
-    if (avgEl) {
-        if (history.length > 0) {
-            const sum = history.reduce((acc, item) => acc + (item.score || 0), 0);
-            const avg = Math.round(sum / history.length);
-            avgEl.textContent = avg + "%";
-        } else {
-            avgEl.textContent = "84%";
-        }
-    }
-
-    if (tbody) {
-        const user = getLoggedInUser();
-        if (!user) {
+    if (!user) {
+        if (countEl) countEl.textContent = "0";
+        if (avgEl) avgEl.textContent = "--";
+        if (tbody) {
             tbody.innerHTML = `
                 <tr>
                     <td colspan="5" style="padding: 28px; text-align: center; color: #cbd5e1;">
@@ -2032,60 +2031,59 @@ function renderExecutiveDashboard() {
                     </td>
                 </tr>
             `;
-        } else {
-            fetch("/api/user-history", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: user.email })
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success && res.history && res.history.length > 0) {
-                    tbody.innerHTML = res.history.map(p => `
-                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
-                            <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
-                            <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
-                            <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
-                            <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
-                            <td style="padding: 14px; text-align: right;">
-                                <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
-                                    Re-Scan
-                                </button>
-                            </td>
-                        </tr>
-                    `).join('');
-                } else {
-                    const localHist = getLocalHistory().filter(item => item.user_email === user.email);
-                    if (localHist.length > 0) {
-                        tbody.innerHTML = localHist.slice(0, 10).map(p => `
-                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
-                                <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
-                                <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.overall_score || p.score || 80}%</span></td>
-                                <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade || "B"}</span></td>
-                                <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date || "Recent"}</td>
-                                <td style="padding: 14px; text-align: right;">
-                                    <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
-                                        Re-Scan
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('');
-                    } else {
-                        tbody.innerHTML = `
-                            <tr>
-                                <td colspan="5" style="padding: 24px; text-align: center; color: #cbd5e1;">
-                                    No saved audit projects found for <b>${user.email}</b>. Run your first audit scan above!
-                                </td>
-                            </tr>
-                        `;
-                    }
-                }
-            })
-            .catch(err => {
-                console.error("User history fetch error:", err);
-            });
         }
+        loadHistoricalScoreGraph();
+        return;
     }
+
+    // Fetch user-scoped history for logged-in user
+    fetch("/api/user-history", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: user.email })
+    })
+    .then(r => r.json())
+    .then(res => {
+        const history = (res.success && res.history) ? res.history : [];
+        if (countEl) countEl.textContent = history.length;
+        if (avgEl) {
+            if (history.length > 0) {
+                const sum = history.reduce((acc, item) => acc + (item.score || 0), 0);
+                avgEl.textContent = Math.round(sum / history.length) + "%";
+            } else {
+                avgEl.textContent = "--";
+            }
+        }
+
+        if (tbody) {
+            if (history.length > 0) {
+                tbody.innerHTML = history.map(p => `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
+                        <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
+                        <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
+                        <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
+                        <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
+                        <td style="padding: 14px; text-align: right;">
+                            <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
+                                Re-Scan
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="padding: 24px; text-align: center; color: #cbd5e1;">
+                            No saved audit projects found for <b>${user.email}</b>. Run your first audit scan above!
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+    })
+    .catch(err => {
+        console.error("User history fetch error:", err);
+    });
 
     loadHistoricalScoreGraph();
 }
