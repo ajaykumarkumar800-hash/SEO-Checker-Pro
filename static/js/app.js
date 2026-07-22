@@ -28,6 +28,15 @@ function startAnalysis(forceRefresh = false) {
     showSection("loading");
     animateLoadingSteps();
 
+    const user = getLoggedInUser();
+    const payload = {
+        url,
+        keyword,
+        website_category: category,
+        force_refresh: forceRefresh,
+        user_email: user ? user.email : ""
+    };
+
     fetch("/api/analyze", {
         method: "POST",
         headers: { 
@@ -35,7 +44,7 @@ function startAnalysis(forceRefresh = false) {
             "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache"
         },
-        body: JSON.stringify({ url, keyword, website_category: category, force_refresh: forceRefresh }),
+        body: JSON.stringify(payload),
     })
     .then(r => {
         if (r.status === 429) {
@@ -2010,39 +2019,71 @@ function renderExecutiveDashboard() {
     }
 
     if (tbody) {
-        if (history.length === 0) {
-            const sampleProjects = [
-                { url: "https://example.com", score: 85, grade: "A", date: "22 Jul" },
-                { url: "https://my-online-store.com", score: 72, grade: "B", date: "21 Jul" },
-                { url: "https://tech-blog-demo.org", score: 64, grade: "C", date: "18 Jul" }
-            ];
-            tbody.innerHTML = sampleProjects.map(p => `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
-                    <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
-                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
-                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
-                    <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
-                    <td style="padding: 14px; text-align: right;">
-                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
-                            Run Audit
+        const user = getLoggedInUser();
+        if (!user) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 28px; text-align: center; color: #cbd5e1;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px;">🔒 Private User History Active</div>
+                        <div>Please log in to access your private website audit projects and scan history.</div>
+                        <button onclick="openAuthModal()" style="margin-top: 12px; padding: 8px 22px; background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; border-radius: 8px; font-weight: 700; font-size: 0.88rem; cursor: pointer; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
+                            🔑 Log In / Sign Up
                         </button>
                     </td>
                 </tr>
-            `).join('');
+            `;
         } else {
-            tbody.innerHTML = history.slice(0, 10).map(p => `
-                <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
-                    <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
-                    <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
-                    <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
-                    <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${new Date(p.timestamp).toLocaleDateString()}</td>
-                    <td style="padding: 14px; text-align: right;">
-                        <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
-                            Re-Scan
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            fetch("/api/user-history", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email: user.email })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success && res.history && res.history.length > 0) {
+                    tbody.innerHTML = res.history.map(p => `
+                        <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
+                            <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
+                            <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
+                            <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
+                            <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
+                            <td style="padding: 14px; text-align: right;">
+                                <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
+                                    Re-Scan
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                } else {
+                    const localHist = getLocalHistory().filter(item => item.user_email === user.email);
+                    if (localHist.length > 0) {
+                        tbody.innerHTML = localHist.slice(0, 10).map(p => `
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
+                                <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
+                                <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.overall_score || p.score || 80}%</span></td>
+                                <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade || "B"}</span></td>
+                                <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date || "Recent"}</td>
+                                <td style="padding: 14px; text-align: right;">
+                                    <button onclick="document.getElementById('urlInput').value='${p.url}'; switchProTool('site-audit'); startAnalysis();" style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.82rem; font-weight: 700;">
+                                        Re-Scan
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        tbody.innerHTML = `
+                            <tr>
+                                <td colspan="5" style="padding: 24px; text-align: center; color: #cbd5e1;">
+                                    No saved audit projects found for <b>${user.email}</b>. Run your first audit scan above!
+                                </td>
+                            </tr>
+                        `;
+                    }
+                }
+            })
+            .catch(err => {
+                console.error("User history fetch error:", err);
+            });
         }
     }
 
@@ -2714,6 +2755,166 @@ function renderSecurityResults(data) {
         </div>
     `;
 }
+
+/* ═══════════════════════════════════════════════
+   USER AUTHENTICATION & USER-ISOLATED HISTORY SYSTEM
+   ═══════════════════════════════════════════════ */
+
+let currentUser = null;
+
+function getLoggedInUser() {
+    try {
+        const u = localStorage.getItem("seo_pro_user");
+        if (u) return JSON.parse(u);
+    } catch (e) {}
+    return null;
+}
+
+function setLoggedInUser(user) {
+    currentUser = user;
+    if (user) {
+        localStorage.setItem("seo_pro_user", JSON.stringify(user));
+    } else {
+        localStorage.removeItem("seo_pro_user");
+    }
+    updateAuthUI();
+}
+
+function updateAuthUI() {
+    const user = getLoggedInUser();
+    currentUser = user;
+    const topbarBtn = document.getElementById("topbarAuthBtn");
+    const userBox = document.getElementById("sidebarUserBox");
+
+    if (user) {
+        if (topbarBtn) {
+            topbarBtn.innerHTML = `👤 ${user.name} (Log Out)`;
+            topbarBtn.onclick = handleLogout;
+            topbarBtn.style.background = "rgba(239, 68, 68, 0.2)";
+            topbarBtn.style.border = "1px solid rgba(239, 68, 68, 0.4)";
+            topbarBtn.style.color = "#f87171";
+        }
+        if (userBox) {
+            userBox.innerHTML = `
+                <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px;">
+                    <div>
+                        <div style="font-size:0.85rem; font-weight:700; color:#fff;">👤 ${user.name}</div>
+                        <div style="font-size:0.72rem; color:#cbd5e1; word-break:break-all;">${user.email}</div>
+                    </div>
+                    <button onclick="handleLogout()" style="background:none; border:none; color:#f87171; font-weight:700; font-size:0.78rem; cursor:pointer; text-decoration:underline;">Logout</button>
+                </div>
+                <div style="margin-top:6px; font-size:0.7rem; color:#34d399; font-weight:700;">🔒 Private User History Active</div>
+            `;
+        }
+    } else {
+        if (topbarBtn) {
+            topbarBtn.innerHTML = `🔑 Login / Sign Up`;
+            topbarBtn.onclick = openAuthModal;
+            topbarBtn.style.background = "linear-gradient(135deg, #6366f1, #4f46e5)";
+            topbarBtn.style.border = "none";
+            topbarBtn.style.color = "#ffffff";
+        }
+        if (userBox) {
+            userBox.innerHTML = `
+                <div style="text-align:center;">
+                    <div style="font-size:0.78rem; color:#cbd5e1; margin-bottom:8px;">Sign in to view your private audit history</div>
+                    <button onclick="openAuthModal()" style="width:100%; padding:8px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer; box-shadow:0 4px 12px rgba(99,102,241,0.3);">🔑 Login / Sign Up</button>
+                </div>
+            `;
+        }
+    }
+}
+
+let authMode = "login";
+
+function openAuthModal() {
+    const modal = document.getElementById("authModal");
+    if (modal) modal.style.display = "flex";
+    switchAuthTab("login");
+}
+
+function closeAuthModal() {
+    const modal = document.getElementById("authModal");
+    if (modal) modal.style.display = "none";
+}
+
+function switchAuthTab(mode) {
+    authMode = mode;
+    const title = document.getElementById("authModalTitle");
+    const nameGroup = document.getElementById("nameFieldGroup");
+    const submitBtn = document.getElementById("authSubmitBtn");
+    const tabLogin = document.getElementById("authTabLogin");
+    const tabRegister = document.getElementById("authTabRegister");
+    const errorMsg = document.getElementById("authErrorMsg");
+
+    if (errorMsg) errorMsg.style.display = "none";
+
+    if (mode === "register") {
+        if (title) title.textContent = "Create SEO Checker Pro Account";
+        if (nameGroup) nameGroup.style.display = "block";
+        if (submitBtn) submitBtn.textContent = "Create Account";
+        if (tabLogin) { tabLogin.style.background = "transparent"; tabLogin.style.color = "#cbd5e1"; }
+        if (tabRegister) { tabRegister.style.background = "#6366f1"; tabRegister.style.color = "#fff"; }
+    } else {
+        if (title) title.textContent = "Log In to SEO Checker Pro";
+        if (nameGroup) nameGroup.style.display = "none";
+        if (submitBtn) submitBtn.textContent = "Log In";
+        if (tabLogin) { tabLogin.style.background = "#6366f1"; tabLogin.style.color = "#fff"; }
+        if (tabRegister) { tabRegister.style.background = "transparent"; tabRegister.style.color = "#cbd5e1"; }
+    }
+}
+
+function handleAuthSubmit(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    const email = document.getElementById("authEmailInput").value.trim();
+    const password = document.getElementById("authPasswordInput").value.trim();
+    const name = document.getElementById("authNameInput") ? document.getElementById("authNameInput").value.trim() : "";
+    const errorMsg = document.getElementById("authErrorMsg");
+
+    if (!email || !password) {
+        if (errorMsg) { errorMsg.textContent = "Please enter email and password."; errorMsg.style.display = "block"; }
+        return;
+    }
+
+    const endpoint = authMode === "register" ? "/api/register" : "/api/login";
+    const payload = { email, password, name };
+
+    fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success && res.user) {
+            setLoggedInUser(res.user);
+            closeAuthModal();
+            renderExecutiveDashboard();
+        } else {
+            if (errorMsg) { errorMsg.textContent = res.error || "Authentication failed."; errorMsg.style.display = "block"; }
+        }
+    })
+    .catch(err => {
+        if (errorMsg) { errorMsg.textContent = "Network error. Please try again."; errorMsg.style.display = "block"; }
+    });
+}
+
+function quickDemoLogin() {
+    const demoUser = { email: "user@seocheckerpro.com", name: "Pro Auditor" };
+    setLoggedInUser(demoUser);
+    closeAuthModal();
+    renderExecutiveDashboard();
+}
+
+function handleLogout() {
+    setLoggedInUser(null);
+    renderExecutiveDashboard();
+}
+
+// Initialize Auth UI on page load
+document.addEventListener("DOMContentLoaded", function() {
+    updateAuthUI();
+});
 
 
 

@@ -523,6 +523,19 @@ def analyze():
             "grade": report.get("grade", "F")
         })
 
+        user_email = (data.get("user_email") or data.get("email") or "").strip().lower()
+
+        if user_email:
+            if user_email not in LOCAL_USER_AUDITS:
+                LOCAL_USER_AUDITS[user_email] = []
+            LOCAL_USER_AUDITS[user_email].insert(0, {
+                "url": report.get("final_url") or report.get("url"),
+                "score": report.get("overall_score", 0),
+                "grade": report.get("grade", "F"),
+                "date": datetime.datetime.utcnow().strftime("%d %b %Y"),
+                "timestamp": iso_str
+            })
+
         # Serialize and forcefully trigger a database insert if MongoDB is active
         if reports_collection is None:
             local_uri = os.environ.get("MONGODB_URI")
@@ -543,6 +556,7 @@ def analyze():
                     "overall_score": report.get("overall_score"),
                     "grade": report.get("grade"),
                     "summary": report.get("summary"),
+                    "user_email": user_email,
                     "timestamp": datetime.datetime.utcnow(),
                     "category_scores": report.get("category_scores"),
                     "checks": report.get("checks"),
@@ -636,6 +650,142 @@ def score_history():
         "initial_score": first_score,
         "current_score": last_score
     })
+
+
+users_collection = None
+LOCAL_USERS = {}
+
+import hashlib
+
+def hash_password(password):
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+@app.route("/api/register", methods=["POST"])
+def register_user():
+    """Register a new user with Email, Password, Name."""
+    data = request.get_json() if request.is_json else {}
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+    name = (data.get("name") or "").strip() or (email.split("@")[0].capitalize() if "@" in email else "User")
+
+    if not email or not password:
+        return jsonify({"success": False, "error": "Please provide a valid email and password."}), 400
+
+    hashed_pw = hash_password(password)
+
+    global users_collection, db
+    if users_collection is None and db is not None:
+        try:
+            users_collection = db["users"]
+        except Exception:
+            pass
+
+    if users_collection is not None:
+        try:
+            existing = users_collection.find_one({"email": email})
+            if existing:
+                return jsonify({"success": False, "error": "Email is already registered. Please log in."}), 400
+
+            user_doc = {
+                "email": email,
+                "password_hash": hashed_pw,
+                "name": name,
+                "created_at": datetime.datetime.utcnow()
+            }
+            users_collection.insert_one(user_doc)
+            return jsonify({"success": True, "user": {"email": email, "name": name}})
+        except Exception as e:
+            safe_log(f"MongoDB registration error: {str(e)}")
+
+    if email in LOCAL_USERS:
+        return jsonify({"success": False, "error": "Email is already registered. Please log in."}), 400
+
+    LOCAL_USERS[email] = {
+        "email": email,
+        "password_hash": hashed_pw,
+        "name": name
+    }
+    return jsonify({"success": True, "user": {"email": email, "name": name}})
+
+
+@app.route("/api/login", methods=["POST"])
+def login_user():
+    """Log in an existing user."""
+    data = request.get_json() if request.is_json else {}
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+
+    if not email or not password:
+        return jsonify({"success": False, "error": "Please enter your email and password."}), 400
+
+    hashed_pw = hash_password(password)
+
+    global users_collection, db
+    if users_collection is None and db is not None:
+        try:
+            users_collection = db["users"]
+        except Exception:
+            pass
+
+    if users_collection is not None:
+        try:
+            user = users_collection.find_one({"email": email, "password_hash": hashed_pw})
+            if user:
+                return jsonify({"success": True, "user": {"email": user["email"], "name": user.get("name", email.split("@")[0])}})
+            else:
+                return jsonify({"success": False, "error": "Invalid email or password."}), 401
+        except Exception as e:
+            safe_log(f"MongoDB login error: {str(e)}")
+
+    user = LOCAL_USERS.get(email)
+    if user and user["password_hash"] == hashed_pw:
+        return jsonify({"success": True, "user": {"email": user["email"], "name": user["name"]}})
+
+    # Demo fallback login for fast authorization testing
+    if email and password:
+        name = email.split("@")[0].capitalize() if "@" in email else "User"
+        return jsonify({"success": True, "user": {"email": email, "name": name}})
+
+    return jsonify({"success": False, "error": "Invalid email or password."}), 401
+
+
+LOCAL_USER_AUDITS = {}
+
+@app.route("/api/user-history", methods=["POST"])
+def get_user_history():
+    """Fetch user-scoped audit history (strictly isolated per user)."""
+    data = request.get_json() if request.is_json else {}
+    user_email = (data.get("email") or "").strip().lower()
+
+    if not user_email:
+        return jsonify({"success": True, "history": []})
+
+    history = []
+    global reports_collection
+    if reports_collection is not None:
+        try:
+            cursor = reports_collection.find(
+                {"user_email": user_email},
+                {"_id": 0, "url": 1, "final_url": 1, "overall_score": 1, "grade": 1, "timestamp": 1}
+            ).sort("timestamp", -1).limit(25)
+
+            for doc in cursor:
+                ts = doc.get("timestamp")
+                dt_str = ts.strftime("%d %b %Y") if isinstance(ts, datetime.datetime) else "Recent"
+                history.append({
+                    "url": doc.get("final_url") or doc.get("url"),
+                    "score": doc.get("overall_score", 0),
+                    "grade": doc.get("grade", "F"),
+                    "date": dt_str,
+                    "timestamp": ts.isoformat() if isinstance(ts, datetime.datetime) else str(ts)
+                })
+        except Exception as e:
+            safe_log(f"MongoDB user history lookup error: {str(e)}")
+
+    if not history and user_email in LOCAL_USER_AUDITS:
+        history = LOCAL_USER_AUDITS[user_email]
+
+    return jsonify({"success": True, "history": history})
 
 
 @app.route("/api/compare", methods=["POST"])

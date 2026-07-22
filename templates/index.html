@@ -99,6 +99,11 @@
                 </button>
             </nav>
 
+            <!-- Sidebar User Profile & Login Button -->
+            <div id="sidebarUserBox" style="padding: 14px 16px; border-top: 1px solid rgba(255,255,255,0.1); margin-top: auto;">
+                <!-- Populated dynamically by JS -->
+            </div>
+
             <!-- Sidebar Footer Status -->
             <div class="sidebar-footer">
                 <span class="badge badge-glow">v3.0 Pro Suite</span>
@@ -114,8 +119,11 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                     Menu
                 </button>
-                <div style="margin-left: auto; display: flex; gap: 10px; align-items: center;">
+                <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
                     <span class="badge badge-glow">⚡ 100% Real-Time Engine Active</span>
+                    <button id="topbarAuthBtn" onclick="openAuthModal()" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; border-radius: 8px; padding: 7px 16px; color: #ffffff; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
+                        🔑 Login / Sign Up
+                    </button>
                 </div>
             </header>
 
@@ -934,8 +942,52 @@
         </div> <!-- /.app-main -->
     </div> <!-- /.app-wrapper -->
 
-    <!-- ── PRINT REPORT (hidden, used for PDF export) ── -->
-    <div id="printReport" class="print-only-report"></div>
+    <!-- ── AUTHENTICATION MODAL (LOGIN / SIGN UP) ── -->
+    <div id="authModal" class="auth-modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(9,13,22,0.85); backdrop-filter:blur(10px); z-index:9999; justify-content:center; align-items:center;">
+        <div class="auth-modal-card" style="background:#0f172a; border:1px solid rgba(255,255,255,0.15); border-radius:20px; padding:32px; width:100%; max-width:440px; box-shadow:0 20px 50px rgba(0,0,0,0.5); position:relative;">
+            <button onclick="closeAuthModal()" style="position:absolute; top:18px; right:18px; background:none; border:none; color:#cbd5e1; font-size:1.5rem; cursor:pointer;">&times;</button>
+            
+            <div style="text-align:center; margin-bottom:24px;">
+                <h3 id="authModalTitle" style="font-size:1.4rem; font-weight:800; color:#ffffff; margin-bottom:6px;">Log In to SEO Checker Pro</h3>
+                <p style="font-size:0.85rem; color:#cbd5e1;">Access your private user dashboard and saved audit history.</p>
+            </div>
+
+            <!-- Auth Mode Switch Tabs -->
+            <div style="display:flex; background:rgba(255,255,255,0.06); border-radius:10px; padding:4px; margin-bottom:20px;">
+                <button id="authTabLogin" type="button" onclick="switchAuthTab('login')" style="flex:1; padding:8px; border:none; border-radius:8px; background:#6366f1; color:#fff; font-weight:700; cursor:pointer;">Log In</button>
+                <button id="authTabRegister" type="button" onclick="switchAuthTab('register')" style="flex:1; padding:8px; border:none; border-radius:8px; background:transparent; color:#cbd5e1; font-weight:600; cursor:pointer;">Sign Up</button>
+            </div>
+
+            <form id="authForm" onsubmit="handleAuthSubmit(event)">
+                <div id="nameFieldGroup" style="display:none; margin-bottom:16px;">
+                    <label style="display:block; font-size:0.8rem; font-weight:600; color:#cbd5e1; margin-bottom:6px;">Full Name</label>
+                    <input type="text" id="authNameInput" placeholder="John Doe" style="width:100%; padding:12px 14px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.9rem;">
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="display:block; font-size:0.8rem; font-weight:600; color:#cbd5e1; margin-bottom:6px;">Email Address</label>
+                    <input type="email" id="authEmailInput" required placeholder="user@example.com" style="width:100%; padding:12px 14px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.9rem;">
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <label style="display:block; font-size:0.8rem; font-weight:600; color:#cbd5e1; margin-bottom:6px;">Password</label>
+                    <input type="password" id="authPasswordInput" required placeholder="••••••••" style="width:100%; padding:12px 14px; background:#1e293b; border:1px solid rgba(255,255,255,0.15); border-radius:10px; color:#fff; font-size:0.9rem;">
+                </div>
+
+                <div id="authErrorMsg" style="display:none; background:rgba(239,68,68,0.15); border:1px solid #ef4444; color:#f87171; padding:10px; border-radius:8px; font-size:0.85rem; margin-bottom:16px; text-align:center;"></div>
+
+                <button type="submit" id="authSubmitBtn" style="width:100%; padding:12px; background:linear-gradient(135deg, #6366f1, #4f46e5); border:none; border-radius:10px; color:#fff; font-weight:700; font-size:0.95rem; cursor:pointer; box-shadow:0 4px 14px rgba(99,102,241,0.4);">
+                    Log In
+                </button>
+
+                <div style="margin-top:16px; text-align:center;">
+                    <button type="button" onclick="quickDemoLogin()" style="background:none; border:none; color:#818cf8; font-size:0.85rem; font-weight:600; cursor:pointer; text-decoration:underline;">
+                        ⚡ Quick Demo Login (Instant Access)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Chart.js for Radar & Historical Progress Graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
