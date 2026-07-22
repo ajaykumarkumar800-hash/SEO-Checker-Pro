@@ -328,6 +328,7 @@ function renderResults(data) {
     renderPageSpeed(data);
     renderGSCDiagnostics(data);
     renderCategoryOverview(data.category_scores);
+    renderIssuesSummaryBar(data);
     renderRecommendations(data.recommendations);
     renderTabScores(data.category_scores);
     switchTab("on_page");
@@ -749,23 +750,92 @@ function renderRecommendations(recs) {
     const has = recs.critical.length > 0 || recs.warning.length > 0 || recs.info.length > 0;
     if (!has) { panel.style.display = "none"; return; }
     panel.style.display = "";
-    const groups = [
-        { key: "critical", label: "Critical Issues", cls: "critical", icon: `<svg class="rec-title-svg text-red" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>` },
-        { key: "warning", label: "Warnings", cls: "warning", icon: `<svg class="rec-title-svg text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>` },
-        { key: "info", label: "Suggestions", cls: "info", icon: `<svg class="rec-title-svg text-blue" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>` },
+
+    const allRecs = [
+        ...recs.critical.map(r => ({...r, severity: "critical"})),
+        ...recs.warning.map(r => ({...r, severity: "warning"})),
+        ...recs.info.map(r => ({...r, severity: "info"})),
     ];
-    for (const g of groups) {
-        if (!recs[g.key].length) continue;
-        const el = document.createElement("div");
-        el.className = "rec-group";
-        el.innerHTML = `<div class="rec-group-title ${g.cls}">${g.icon} ${g.label} (${recs[g.key].length})</div>`;
-        for (const r of recs[g.key]) {
-            const item = document.createElement("div");
-            item.className = `rec-item ${g.cls}`;
-            item.innerHTML = `<span class="rec-check-name">${esc(r.check)}:</span><span class="rec-message">${esc(r.message)}</span>`;
-            el.appendChild(item);
+
+    // Filter buttons
+    const filterBar = document.createElement("div");
+    filterBar.className = "rec-filter-bar";
+    const filters = [
+        { key: "all", label: `All (${allRecs.length})` },
+        { key: "critical", label: `🔴 Critical (${recs.critical.length})` },
+        { key: "warning", label: `⚠️ Warnings (${recs.warning.length})` },
+        { key: "info", label: `ℹ️ Suggestions (${recs.info.length})` },
+    ];
+    let activeFilter = "all";
+
+    function renderFilteredRecs(filterKey) {
+        activeFilter = filterKey;
+        filterBar.querySelectorAll(".rec-filter-btn").forEach(btn => {
+            btn.classList.toggle("active", btn.dataset.filter === filterKey);
+        });
+        // Clear existing cards (not filter bar)
+        const existingCards = list.querySelectorAll(".rec-detail-card");
+        existingCards.forEach(c => c.remove());
+
+        const filtered = filterKey === "all" ? allRecs : allRecs.filter(r => r.severity === filterKey);
+
+        for (const r of filtered) {
+            const card = document.createElement("div");
+            card.className = "rec-detail-card";
+            card.innerHTML = `
+                <div class="rec-detail-header" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div class="rec-detail-status ${r.severity}">
+                        ${r.severity === "critical" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>' :
+                          r.severity === "warning" ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' :
+                          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'}
+                    </div>
+                    <div class="rec-detail-info">
+                        <div class="rec-detail-name">${esc(r.check)}</div>
+                        <div class="rec-detail-msg">${esc(r.message)}</div>
+                    </div>
+                    ${r.solution && r.solution.impact ? `<span class="sol-badge ${r.solution.impact === 'Critical' ? 'impact-critical' : r.solution.impact === 'High' ? 'impact-high' : r.solution.impact === 'Medium' ? 'impact-medium' : 'impact-low'}" style="font-size:0.68rem;">⚡ ${r.solution.impact}</span>` : ''}
+                    <svg class="rec-detail-expand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
+                <div class="rec-detail-body">
+                    ${r.solution ? buildSolutionHTML(r.solution) : `<p style="color:#94a3b8; font-size:0.84rem;">${esc(r.message)}</p>`}
+                </div>
+            `;
+            list.appendChild(card);
         }
-        list.appendChild(el);
+    }
+
+    for (const f of filters) {
+        const btn = document.createElement("button");
+        btn.className = "rec-filter-btn" + (f.key === "all" ? " active" : "");
+        btn.dataset.filter = f.key;
+        btn.textContent = f.label;
+        btn.onclick = () => renderFilteredRecs(f.key);
+        filterBar.appendChild(btn);
+    }
+    list.appendChild(filterBar);
+    renderFilteredRecs("all");
+}
+
+function renderIssuesSummaryBar(data) {
+    const container = document.getElementById("issueSummaryBar");
+    if (!container) return;
+    const s = data.summary || {};
+    container.innerHTML = "";
+    container.style.display = "flex";
+
+    const items = [
+        { label: `${s.failed || 0} Critical Issues`, cls: "critical-item", dotColor: "#f87171", status: "fail" },
+        { label: `${s.warnings || 0} Warnings`, cls: "warning-item", dotColor: "#fbbf24", status: "warning" },
+        { label: `${s.passed || 0} Passed`, cls: "passed-item", dotColor: "#34d399", status: "pass" },
+        { label: `${s.info || 0} Info`, cls: "info-item", dotColor: "#38bdf8", status: "info" },
+    ];
+
+    for (const item of items) {
+        const el = document.createElement("div");
+        el.className = `issue-summary-item ${item.cls}`;
+        el.innerHTML = `<span class="issue-summary-dot" style="background:${item.dotColor}"></span> ${item.label}`;
+        el.onclick = () => filterChecksByStatus(item.status);
+        container.appendChild(el);
     }
 }
 
@@ -882,6 +952,100 @@ function filterChecksByStatus(status) {
     container.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+function buildSolutionHTML(solution) {
+    if (!solution) return "";
+    let html = '<div class="solution-panel">';
+
+    // Why It Matters
+    if (solution.why_it_matters) {
+        html += `<div class="solution-section">
+            <div class="solution-section-title">
+                <svg class="sol-icon" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                Why It Matters
+            </div>
+            <div class="solution-why-text">${esc(solution.why_it_matters)}</div>
+        </div>`;
+    }
+
+    // How To Fix (Steps)
+    if (solution.how_to_fix && solution.how_to_fix.length > 0) {
+        html += `<div class="solution-section">
+            <div class="solution-section-title">
+                <svg class="sol-icon" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+                How To Fix — Step by Step
+            </div>
+            <ol class="solution-steps">
+                ${solution.how_to_fix.map(step => `<li>${esc(step)}</li>`).join("")}
+            </ol>
+        </div>`;
+    }
+
+    // Code Example
+    if (solution.code_example) {
+        const codeId = "code_" + Math.random().toString(36).substr(2, 9);
+        html += `<div class="solution-section">
+            <div class="solution-section-title">
+                <svg class="sol-icon" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                Code Example
+            </div>
+            <div class="solution-code-block" id="${codeId}">
+                <button class="solution-code-copy-btn" onclick="event.stopPropagation(); copySolutionCode('${codeId}', this)">Copy</button>
+                ${esc(solution.code_example)}
+            </div>
+        </div>`;
+    }
+
+    // Impact / Difficulty / Time Badges
+    const badges = [];
+    if (solution.impact) {
+        const impactCls = solution.impact === "Critical" ? "impact-critical" :
+                          solution.impact === "High" ? "impact-high" :
+                          solution.impact === "Medium" ? "impact-medium" : "impact-low";
+        badges.push(`<span class="sol-badge ${impactCls}">⚡ Impact: ${solution.impact}</span>`);
+    }
+    if (solution.difficulty) {
+        badges.push(`<span class="sol-badge difficulty">🔧 Difficulty: ${solution.difficulty}</span>`);
+    }
+    if (solution.estimated_time) {
+        badges.push(`<span class="sol-badge time">⏱ ${solution.estimated_time}</span>`);
+    }
+    if (badges.length > 0) {
+        html += `<div class="solution-section"><div class="solution-badges">${badges.join("")}</div></div>`;
+    }
+
+    // Learn More Link
+    if (solution.learn_more_url) {
+        html += `<div class="solution-section">
+            <a href="${esc(solution.learn_more_url)}" target="_blank" rel="noopener" class="solution-learn-more" onclick="event.stopPropagation()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Learn More — Official Documentation
+            </a>
+        </div>`;
+    }
+
+    html += "</div>";
+    return html;
+}
+
+function copySolutionCode(codeId, btn) {
+    const codeEl = document.getElementById(codeId);
+    if (!codeEl) return;
+    const text = codeEl.textContent.replace("Copy", "").trim();
+    navigator.clipboard.writeText(text).then(() => {
+        btn.textContent = "Copied!";
+        btn.style.background = "rgba(52, 211, 153, 0.3)";
+        btn.style.color = "#34d399";
+        setTimeout(() => {
+            btn.textContent = "Copy";
+            btn.style.background = "";
+            btn.style.color = "";
+        }, 2000);
+    }).catch(() => {
+        btn.textContent = "Failed";
+        setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+    });
+}
+
 function createCheckCard(check) {
     const card = document.createElement("div");
     card.className = "check-card";
@@ -898,6 +1062,12 @@ function createCheckCard(check) {
     if (check.recommendation) {
         details += `<div class="check-recommendation"><p style="white-space: normal !important; word-break: break-word !important; overflow: visible !important; display: block !important; height: auto !important; margin: 0; padding: 0;"><strong>Recommendation:</strong> ${esc(check.recommendation)}</p></div>`;
     }
+
+    // Render Solution Panel for fail/warning checks
+    if (check.solution) {
+        details += buildSolutionHTML(check.solution);
+    }
+
     if (check.details && Object.keys(check.details).length > 0) {
         details += '<div class="detail-grid">';
         for (const [k, v] of Object.entries(check.details)) {

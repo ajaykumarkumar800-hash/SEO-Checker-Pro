@@ -35,7 +35,7 @@ class SEOCheck:
     """Represents a single SEO check result."""
 
     def __init__(self, name, category, status, score, max_score, message,
-                 recommendation="", details=None, severity=0):
+                 recommendation="", details=None, severity=0, solution=None):
         self.name = name
         self.category = category
         self.status = status  # "pass", "warning", "fail", "info"
@@ -45,9 +45,10 @@ class SEOCheck:
         self.recommendation = recommendation
         self.details = details or {}
         self.severity = severity  # 1=critical, 2=warning, 3=info
+        self.solution = solution  # Detailed solution dict for fail/warning checks
 
     def to_dict(self):
-        return {
+        d = {
             "name": self.name,
             "category": self.category,
             "status": self.status,
@@ -58,6 +59,698 @@ class SEOCheck:
             "details": self.details,
             "severity": self.severity,
         }
+        if self.solution:
+            d["solution"] = self.solution
+        return d
+
+
+# ── DETAILED SOLUTIONS KNOWLEDGE BASE (Semrush/Ahrefs-level) ──
+# Each entry: why_it_matters, how_to_fix (steps), code_example, impact, difficulty, estimated_time, learn_more_url
+
+SEO_SOLUTIONS = {
+    "Title Tag": {
+        "why_it_matters": "The title tag is the single most important on-page SEO element. It appears as the clickable blue headline in Google search results and directly influences click-through rate (CTR). Pages with optimized titles receive 20-30% more organic clicks. Google uses the title tag as a primary ranking signal to understand page topic relevance.",
+        "how_to_fix": [
+            "Open your page's HTML <head> section",
+            "Add or modify the <title> tag to be 50-60 characters long",
+            "Place your primary target keyword within the first 3-5 words of the title",
+            "Include your brand name at the end separated by a pipe (|) or dash (—)",
+            "Make it compelling — use power words like 'Best', 'Complete Guide', 'Free', '2026'",
+            "Ensure each page on your site has a unique, non-duplicate title tag"
+        ],
+        "code_example": "<head>\n  <title>Primary Keyword - Secondary Keyword | Brand Name</title>\n</head>",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/title-link"
+    },
+    "Meta Description": {
+        "why_it_matters": "The meta description appears as the snippet text below the title in Google search results. While not a direct ranking factor, a well-written meta description significantly improves CTR (click-through rate), which indirectly boosts rankings. Pages without meta descriptions let Google auto-generate snippets that may not convey your intended message.",
+        "how_to_fix": [
+            "Add a <meta name='description'> tag in the <head> section of your HTML",
+            "Write a compelling description between 150-160 characters",
+            "Include your primary keyword naturally within the description",
+            "Add a clear call-to-action (e.g., 'Learn more', 'Get started today', 'Free trial')",
+            "Summarize the page's unique value proposition — what makes this page worth clicking",
+            "Avoid duplicate meta descriptions across pages; each should be unique"
+        ],
+        "code_example": "<head>\n  <meta name=\"description\" content=\"Learn how to optimize your website SEO with our comprehensive guide. 130+ checks, actionable recommendations, and real-time analysis. Start free today.\">\n</head>",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/snippet"
+    },
+    "H1 Heading": {
+        "why_it_matters": "The H1 tag is the primary heading of your page and tells both users and search engines what the page is about. Google considers the H1 a strong relevance signal. Pages with a single, keyword-optimized H1 rank significantly better than those with missing or multiple H1 tags. It also improves accessibility for screen readers.",
+        "how_to_fix": [
+            "Ensure every page has exactly ONE <h1> tag — never zero, never multiple",
+            "Place your primary target keyword in the H1 naturally",
+            "Keep the H1 between 20-70 characters for optimal display",
+            "Make the H1 different from the <title> tag — rephrase to add value",
+            "Use the H1 as the main visible headline on the page",
+            "Follow with H2, H3 subheadings for logical content hierarchy"
+        ],
+        "code_example": "<body>\n  <h1>Complete Guide to On-Page SEO Optimization in 2026</h1>\n  <h2>1. Title Tag Best Practices</h2>\n  <h3>How to Write Compelling Titles</h3>\n  <h2>2. Meta Description Tips</h2>\n</body>",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/title-link#headings"
+    },
+    "Heading Hierarchy": {
+        "why_it_matters": "A proper heading hierarchy (H1 → H2 → H3 → H4) creates a clear document outline that search engines use to understand content structure and topic relationships. Skipping heading levels (e.g., H1 → H4) confuses crawlers and reduces accessibility. Well-structured headings improve featured snippet eligibility by 40%.",
+        "how_to_fix": [
+            "Start with a single H1 as the page title",
+            "Use H2 for main sections, H3 for subsections within H2, and so on",
+            "Never skip heading levels — don't jump from H1 to H4",
+            "Don't use heading tags for styling — use CSS font-size instead",
+            "Include relevant keywords in H2/H3 subheadings naturally",
+            "Aim for 3-8 H2 subheadings per long-form article"
+        ],
+        "code_example": "<!-- CORRECT Hierarchy -->\n<h1>Main Page Title</h1>\n  <h2>Section 1</h2>\n    <h3>Subsection 1.1</h3>\n    <h3>Subsection 1.2</h3>\n  <h2>Section 2</h2>\n    <h3>Subsection 2.1</h3>\n\n<!-- WRONG — Skips levels -->\n<h1>Title</h1>\n  <h4>This skips H2 and H3!</h4>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "15 minutes",
+        "learn_more_url": "https://web.dev/learn/html/headings/"
+    },
+    "Image SEO": {
+        "why_it_matters": "Images without alt text are invisible to search engines and screen readers. Google Image Search drives 22% of all web searches. Descriptive alt text helps your images rank in image search, improves accessibility compliance (WCAG 2.1), and provides context when images fail to load. Missing alt text is a top-5 most common SEO error.",
+        "how_to_fix": [
+            "Add descriptive alt attributes to EVERY <img> tag on your page",
+            "Describe what the image shows in 5-15 words — be specific, not generic",
+            "Include your target keyword naturally in at least one image alt text",
+            "Don't start alt text with 'Image of...' or 'Picture of...' — just describe it",
+            "For decorative images, use empty alt='' (not missing alt entirely)",
+            "Use descriptive filenames: 'seo-audit-dashboard.webp' not 'IMG_4532.jpg'",
+            "Compress images and serve in modern formats (WebP, AVIF) for faster loading"
+        ],
+        "code_example": "<!-- GOOD: Descriptive alt text -->\n<img src=\"seo-audit-results.webp\" alt=\"SEO audit results showing 87% score with category breakdown\" width=\"800\" height=\"450\" loading=\"lazy\">\n\n<!-- BAD: Missing alt -->\n<img src=\"IMG_4532.jpg\">\n\n<!-- Decorative image: Empty alt -->\n<img src=\"divider-line.svg\" alt=\"\" role=\"presentation\">",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "20 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/google-images"
+    },
+    "URL Structure": {
+        "why_it_matters": "Clean, readable URLs are a confirmed Google ranking factor. Short URLs with hyphens and keywords perform 20-30% better in search rankings than long, parameter-heavy URLs. Users are also more likely to click clean URLs in search results and share them on social media.",
+        "how_to_fix": [
+            "Use lowercase letters only — avoid mixed case URLs",
+            "Separate words with hyphens (-) not underscores (_)",
+            "Keep URLs short — under 75 characters is ideal",
+            "Include your primary keyword in the URL slug",
+            "Remove unnecessary parameters, session IDs, and query strings",
+            "Avoid double slashes (//) and trailing file extensions (.html, .php)",
+            "Set up 301 redirects if you change existing URLs"
+        ],
+        "code_example": "<!-- GOOD URL Structure -->\nhttps://example.com/seo-audit-guide\nhttps://example.com/blog/on-page-optimization-tips\n\n<!-- BAD URL Structure -->\nhttps://example.com/page?id=4532&ref=nav_bar\nhttps://example.com/Blog/SEO_Tips_And_TRICKS.html",
+        "impact": "Medium",
+        "difficulty": "Medium",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/url-structure"
+    },
+    "Meta Robots": {
+        "why_it_matters": "The meta robots tag controls how search engines crawl and index your page. Incorrect meta robots directives can accidentally block your pages from appearing in Google search results entirely. A 'noindex' or 'nofollow' directive on important pages is one of the most critical SEO errors that can completely remove your site from search.",
+        "how_to_fix": [
+            "Check your <meta name='robots'> tag in the page <head>",
+            "For pages you WANT indexed: use 'index, follow' or remove the tag entirely",
+            "For pages you DON'T want indexed (thank you, login): use 'noindex, nofollow'",
+            "Check X-Robots-Tag HTTP headers — they can override meta tags",
+            "Verify robots.txt is not blocking Googlebot from crawling the page",
+            "Use Google Search Console's URL Inspection tool to test indexability"
+        ],
+        "code_example": "<!-- Allow indexing (default behavior) -->\n<meta name=\"robots\" content=\"index, follow\">\n\n<!-- Block indexing for private pages -->\n<meta name=\"robots\" content=\"noindex, nofollow\">\n\n<!-- Allow indexing but don't follow links -->\n<meta name=\"robots\" content=\"index, nofollow\">",
+        "impact": "Critical",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag"
+    },
+    "Canonical Tag": {
+        "why_it_matters": "The canonical tag tells Google which version of a page is the 'master' copy when duplicate or similar content exists across multiple URLs. Without it, Google may split ranking signals across duplicates, diluting your page authority. Proper canonicalization can consolidate link equity and prevent duplicate content penalties.",
+        "how_to_fix": [
+            "Add a <link rel='canonical'> tag in the <head> of every page",
+            "Point it to the preferred (canonical) version of the URL",
+            "Use absolute URLs (full https://...) not relative paths",
+            "Ensure the canonical URL matches the page's actual URL for unique pages",
+            "For paginated content, canonical should point to the page itself (not page 1)",
+            "Implement self-referencing canonicals on every page as best practice"
+        ],
+        "code_example": "<head>\n  <!-- Self-referencing canonical -->\n  <link rel=\"canonical\" href=\"https://www.example.com/seo-guide\">\n</head>\n\n<!-- For HTTP/HTTPS duplicates, point to HTTPS version -->\n<link rel=\"canonical\" href=\"https://www.example.com/page\">",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "10 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/canonicalization"
+    },
+    "Semantic HTML": {
+        "why_it_matters": "Semantic HTML5 elements (<header>, <nav>, <main>, <article>, <section>, <footer>) help search engines understand the structure and meaning of your content. Pages using semantic markup are more likely to earn rich snippets, featured snippets, and better SERP positioning. It also significantly improves accessibility for users with disabilities.",
+        "how_to_fix": [
+            "Replace generic <div> containers with semantic HTML5 elements",
+            "Use <header> for page/section headers, <nav> for navigation menus",
+            "Wrap main content in <main> — only one per page",
+            "Use <article> for self-contained content (blog posts, products)",
+            "Use <section> to group related content with a heading",
+            "Add <footer> for copyright, links, and supplementary info",
+            "Include ARIA landmarks for complex interactive elements"
+        ],
+        "code_example": "<body>\n  <header>\n    <nav>...</nav>\n  </header>\n  <main>\n    <article>\n      <h1>Page Title</h1>\n      <section>\n        <h2>Section Title</h2>\n        <p>Content...</p>\n      </section>\n    </article>\n  </main>\n  <footer>© 2026 Brand</footer>\n</body>",
+        "impact": "Medium",
+        "difficulty": "Medium",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://web.dev/learn/html/semantic-html/"
+    },
+    "Word Count": {
+        "why_it_matters": "Content length correlates strongly with search rankings. The average first-page Google result contains 1,400+ words. Thin content (under 300 words) signals low-quality to Google and is unlikely to rank for competitive keywords. However, quality always trumps quantity — every word should add value.",
+        "how_to_fix": [
+            "Aim for 800-2000+ words for blog posts and landing pages",
+            "Audit thin pages (<300 words) and either expand, merge, or noindex them",
+            "Add relevant sections: FAQs, how-to steps, case studies, data points",
+            "Use the 'Skyscraper Technique' — find top-ranking content and make yours more comprehensive",
+            "Break long content into scannable sections with H2/H3 subheadings",
+            "Add supporting media: images, videos, infographics, tables"
+        ],
+        "code_example": "<!-- Content structure for 1500+ word article -->\n<article>\n  <h1>Complete Guide to Topic</h1>\n  <p>Introduction (100-150 words)...</p>\n  \n  <h2>What is [Topic]? (200-300 words)</h2>\n  <h2>Why [Topic] Matters (200-300 words)</h2>\n  <h2>Step-by-Step Guide (400-500 words)</h2>\n    <h3>Step 1: ...</h3>\n    <h3>Step 2: ...</h3>\n  <h2>FAQ Section (200-300 words)</h2>\n  <h2>Conclusion (100-150 words)</h2>\n</article>",
+        "impact": "High",
+        "difficulty": "Medium",
+        "estimated_time": "2-4 hours",
+        "learn_more_url": "https://developers.google.com/search/docs/fundamentals/creating-helpful-content"
+    },
+    "Internal Links": {
+        "why_it_matters": "Internal links distribute PageRank (link equity) across your site and help Google discover and understand the relationship between pages. Sites with strong internal linking architecture rank 40% better on average. They also reduce bounce rate by guiding users to related content, increasing session duration.",
+        "how_to_fix": [
+            "Add 3-5 contextual internal links per page to related content",
+            "Use descriptive anchor text — not 'click here' or 'read more'",
+            "Link from high-authority pages to important target pages",
+            "Create a hub-and-spoke content model: pillar pages linking to cluster pages",
+            "Fix orphan pages — every page should have at least one internal link pointing to it",
+            "Add a related posts section at the bottom of blog articles",
+            "Use breadcrumb navigation for improved site hierarchy signals"
+        ],
+        "code_example": "<!-- GOOD: Descriptive anchor text -->\n<p>Learn more about <a href=\"/on-page-seo-guide\">on-page SEO optimization techniques</a> in our detailed guide.</p>\n\n<!-- BAD: Generic anchor text -->\n<p>For more info, <a href=\"/on-page-seo-guide\">click here</a>.</p>\n\n<!-- Breadcrumb navigation -->\n<nav aria-label=\"Breadcrumb\">\n  <ol>\n    <li><a href=\"/\">Home</a></li>\n    <li><a href=\"/blog\">Blog</a></li>\n    <li>Current Page</li>\n  </ol>\n</nav>",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "20 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/links-crawlable"
+    },
+    "External Links": {
+        "why_it_matters": "External links to authoritative sources signal trust and credibility to Google. Pages that cite reputable external sources rank better because they demonstrate E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness). However, linking to spammy or low-quality sites can harm your rankings.",
+        "how_to_fix": [
+            "Link to 2-4 authoritative external sources per article (Wikipedia, government sites, research papers)",
+            "Use descriptive anchor text that describes the linked resource",
+            "Add rel='noopener' to external links for security",
+            "Consider rel='nofollow' for paid/sponsored links",
+            "Open external links in new tabs: target='_blank'",
+            "Regularly audit outbound links and remove any pointing to dead or spammy sites"
+        ],
+        "code_example": "<!-- GOOD: External link to authoritative source -->\n<a href=\"https://developers.google.com/search/docs\" target=\"_blank\" rel=\"noopener\">Google Search Documentation</a>\n\n<!-- Sponsored/paid link -->\n<a href=\"https://partner.com\" rel=\"sponsored noopener\" target=\"_blank\">Partner Tool</a>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "15 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/essentials/spam-policies"
+    },
+    "HTTPS Security": {
+        "why_it_matters": "HTTPS is a confirmed Google ranking signal since 2014. Non-HTTPS sites show a 'Not Secure' warning in Chrome, which dramatically increases bounce rate. HTTPS encrypts data between server and browser, protecting user privacy and building trust. Google has stated that HTTPS is a lightweight ranking signal that can act as a tiebreaker between two otherwise equal pages.",
+        "how_to_fix": [
+            "Purchase and install an SSL/TLS certificate (free via Let's Encrypt)",
+            "Redirect all HTTP URLs to HTTPS with 301 redirects",
+            "Update all internal links to use https:// protocol",
+            "Fix mixed content warnings — ensure all images, scripts, and CSS use HTTPS",
+            "Update your XML sitemap to use HTTPS URLs",
+            "Set up HSTS (HTTP Strict Transport Security) header for forced HTTPS"
+        ],
+        "code_example": "# Apache .htaccess — Force HTTPS\nRewriteEngine On\nRewriteCond %{HTTPS} off\nRewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]\n\n# Nginx — Force HTTPS\nserver {\n    listen 80;\n    server_name example.com;\n    return 301 https://$server_name$request_uri;\n}\n\n# HSTS Header\nStrict-Transport-Security: max-age=31536000; includeSubDomains",
+        "impact": "Critical",
+        "difficulty": "Medium",
+        "estimated_time": "1-2 hours",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/https"
+    },
+    "Status Code": {
+        "why_it_matters": "HTTP status codes tell search engines whether a page is available (200), moved (301/302), or broken (404/500). 4xx and 5xx errors waste crawl budget, create poor user experience, and cause deindexing. A high number of server errors signals to Google that your site is unreliable, which can suppress overall rankings.",
+        "how_to_fix": [
+            "Monitor server response codes with Google Search Console's Coverage report",
+            "Fix 404 errors by restoring content or setting up 301 redirects to relevant pages",
+            "Investigate 500 errors — check server logs, database connections, PHP/Python errors",
+            "Remove internal links pointing to 404 pages",
+            "Create a custom 404 page with navigation links to help users find content",
+            "Set up uptime monitoring to catch 5xx errors immediately"
+        ],
+        "code_example": "# Custom 404 page in HTML\n<h1>Page Not Found</h1>\n<p>The page you're looking for doesn't exist.</p>\n<a href=\"/\">Go to Homepage</a>\n<a href=\"/sitemap\">View Sitemap</a>\n\n# 301 Redirect in .htaccess\nRedirect 301 /old-page https://example.com/new-page\n\n# Nginx redirect\nlocation /old-url { return 301 /new-url; }",
+        "impact": "Critical",
+        "difficulty": "Medium",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/http-network-errors"
+    },
+    "Page Load Time": {
+        "why_it_matters": "Page speed is a confirmed Google ranking factor for both desktop and mobile. Pages loading in under 2.5 seconds have 2x lower bounce rates than slower pages. Google's Core Web Vitals (LCP, FID, CLS) directly influence search rankings. 53% of mobile users abandon sites that take more than 3 seconds to load.",
+        "how_to_fix": [
+            "Optimize images: compress with TinyPNG/Squoosh, serve WebP/AVIF format, add width/height attributes",
+            "Enable browser caching with Cache-Control headers (max-age: 1 year for static assets)",
+            "Minify CSS, JavaScript, and HTML — remove whitespace, comments, unused code",
+            "Enable Gzip/Brotli compression on your server",
+            "Defer non-critical JavaScript with defer/async attributes",
+            "Use a CDN (Cloudflare, AWS CloudFront) to serve content from nearby edge servers",
+            "Implement lazy loading for images below the fold",
+            "Reduce server response time (TTFB) — optimize database queries, use caching layers"
+        ],
+        "code_example": "<!-- Lazy load images -->\n<img src=\"photo.webp\" loading=\"lazy\" alt=\"Description\">\n\n<!-- Defer non-critical JS -->\n<script src=\"analytics.js\" defer></script>\n\n<!-- Preconnect to critical origins -->\n<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\n<link rel=\"preconnect\" href=\"https://cdn.example.com\">\n\n<!-- Cache-Control header -->\nCache-Control: public, max-age=31536000, immutable",
+        "impact": "High",
+        "difficulty": "Medium",
+        "estimated_time": "1-3 hours",
+        "learn_more_url": "https://web.dev/performance/"
+    },
+    "Robots.txt": {
+        "why_it_matters": "The robots.txt file controls which parts of your site search engine crawlers can access. A missing or misconfigured robots.txt can either block important pages from being crawled (killing rankings) or allow crawling of private/admin areas. It also specifies your XML sitemap location, helping Google discover all pages faster.",
+        "how_to_fix": [
+            "Create a robots.txt file in your site's root directory",
+            "Allow Googlebot access to all important content pages",
+            "Block admin, login, internal search, and duplicate content paths",
+            "Add your XML sitemap URL using the Sitemap: directive",
+            "Test your robots.txt in Google Search Console's robots.txt Tester",
+            "Never block CSS/JS files — Google needs them to render your pages"
+        ],
+        "code_example": "# robots.txt — Best Practice Template\nUser-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /login/\nDisallow: /internal-search/\nDisallow: /api/\nDisallow: /tmp/\n\n# Sitemap\nSitemap: https://www.example.com/sitemap.xml",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "10 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/robots/intro"
+    },
+    "XML Sitemap": {
+        "why_it_matters": "An XML sitemap is a roadmap for search engines, listing all important pages on your site with their last modification date and priority. Sites with sitemaps get indexed up to 4x faster. For large sites (1000+ pages), a sitemap is essential for ensuring Google discovers deep or orphaned pages that internal links might miss.",
+        "how_to_fix": [
+            "Generate an XML sitemap using your CMS (WordPress: Yoast SEO) or a tool like Screaming Frog",
+            "Include only canonical, indexable pages (200 status, no noindex)",
+            "Keep sitemap under 50MB / 50,000 URLs — use sitemap index for larger sites",
+            "Add <lastmod> dates to help Google prioritize recently updated content",
+            "Submit your sitemap in Google Search Console under Sitemaps",
+            "Reference the sitemap URL in your robots.txt file",
+            "Update the sitemap whenever content is added, modified, or removed"
+        ],
+        "code_example": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n  <url>\n    <loc>https://www.example.com/</loc>\n    <lastmod>2026-07-22</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>1.0</priority>\n  </url>\n  <url>\n    <loc>https://www.example.com/blog</loc>\n    <lastmod>2026-07-20</lastmod>\n    <priority>0.8</priority>\n  </url>\n</urlset>",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "15 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview"
+    },
+    "Viewport Meta": {
+        "why_it_matters": "The viewport meta tag is essential for mobile-friendly rendering. Without it, mobile devices display the desktop version of your site in a tiny zoom-out view, creating a terrible user experience. Google's Mobile-First Indexing means the mobile version of your page is what gets ranked — a missing viewport tag effectively signals your site is not mobile-optimized.",
+        "how_to_fix": [
+            "Add the viewport meta tag in the <head> section of every page",
+            "Use the standard viewport settings: width=device-width, initial-scale=1.0",
+            "Don't disable user zooming (avoid maximum-scale=1, user-scalable=no)",
+            "Test mobile rendering with Google's Mobile-Friendly Test tool",
+            "Implement responsive CSS with media queries for breakpoints"
+        ],
+        "code_example": "<head>\n  <!-- Required viewport meta tag -->\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n</head>\n\n<!-- Responsive CSS -->\n<style>\n@media (max-width: 768px) {\n  .container { padding: 0 16px; }\n  .sidebar { display: none; }\n}\n</style>",
+        "impact": "Critical",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://web.dev/responsive-web-design-basics/"
+    },
+    "Language Attribute": {
+        "why_it_matters": "The HTML lang attribute helps search engines serve your content to users searching in the correct language. It also enables screen readers to use the correct pronunciation rules for accessibility. Without it, Google may struggle to identify the page language, potentially showing your page to wrong-language searchers.",
+        "how_to_fix": [
+            "Add the lang attribute to the opening <html> tag",
+            "Use the correct ISO 639-1 language code (en, es, fr, de, hi, etc.)",
+            "For regional variants, add country code: en-US, en-GB, pt-BR",
+            "For multilingual sites, implement hreflang tags in the <head>",
+            "Ensure the lang attribute matches the actual page content language"
+        ],
+        "code_example": "<!-- English page -->\n<html lang=\"en\">\n\n<!-- Hindi page -->\n<html lang=\"hi\">\n\n<!-- Hreflang for multilingual sites -->\n<head>\n  <link rel=\"alternate\" hreflang=\"en\" href=\"https://example.com/en/page\">\n  <link rel=\"alternate\" hreflang=\"es\" href=\"https://example.com/es/page\">\n  <link rel=\"alternate\" hreflang=\"x-default\" href=\"https://example.com/page\">\n</head>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/specialty/international/localized-versions"
+    },
+    "Character Encoding": {
+        "why_it_matters": "Character encoding (charset) tells browsers how to convert raw bytes into readable characters. Without proper UTF-8 encoding, special characters, emojis, and non-Latin scripts (Hindi, Arabic, Chinese) may display as garbled mojibake symbols. This breaks user experience and can cause search engines to misinterpret your content.",
+        "how_to_fix": [
+            "Add <meta charset='UTF-8'> as the FIRST tag inside <head>",
+            "Ensure your server sends Content-Type: text/html; charset=utf-8 header",
+            "Save your HTML files in UTF-8 encoding in your code editor",
+            "Test with characters from multiple scripts to verify rendering"
+        ],
+        "code_example": "<head>\n  <meta charset=\"UTF-8\">  <!-- Must be first in <head> -->\n  <title>Page Title</title>\n</head>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "2 minutes",
+        "learn_more_url": "https://www.w3.org/International/questions/qa-html-encoding-declarations"
+    },
+    "DOCTYPE Declaration": {
+        "why_it_matters": "The <!DOCTYPE html> declaration tells browsers to render the page in standards mode rather than quirks mode. Without it, browsers may render your CSS and JavaScript inconsistently, leading to layout bugs. While not a direct SEO ranking factor, it ensures consistent rendering which improves Core Web Vitals scores.",
+        "how_to_fix": [
+            "Add <!DOCTYPE html> as the very FIRST line of your HTML document",
+            "It must come before the <html> tag — no comments or whitespace before it",
+            "Use the HTML5 doctype (<!DOCTYPE html>) — it's the simplest and most compatible",
+            "Validate your HTML using the W3C Markup Validation Service"
+        ],
+        "code_example": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\">\n  <title>Page Title</title>\n</head>\n<body>\n  ...\n</body>\n</html>",
+        "impact": "Low",
+        "difficulty": "Easy",
+        "estimated_time": "2 minutes",
+        "learn_more_url": "https://developer.mozilla.org/en-US/docs/Glossary/Doctype"
+    },
+    "Favicon": {
+        "why_it_matters": "The favicon appears in browser tabs, bookmarks, Google search results, and mobile home screens. A missing favicon triggers a 404 error in server logs on every page load, wasting server resources. In Google Search, favicons appear next to your site name — pages without them look less professional and get lower click-through rates.",
+        "how_to_fix": [
+            "Create a favicon in multiple sizes: 16x16, 32x32, 180x180 (Apple Touch), 192x192 (Android)",
+            "Use SVG format for scalable, crisp favicons that work at any size",
+            "Place favicon.ico in your site root directory",
+            "Add <link rel='icon'> tags in your <head> for specific formats",
+            "Test with realfavicongenerator.net for cross-browser compatibility"
+        ],
+        "code_example": "<head>\n  <!-- SVG favicon (modern browsers) -->\n  <link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\">\n  <!-- ICO fallback -->\n  <link rel=\"icon\" type=\"image/x-icon\" href=\"/favicon.ico\">\n  <!-- Apple Touch Icon -->\n  <link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/apple-touch-icon.png\">\n  <!-- Android Chrome -->\n  <link rel=\"icon\" type=\"image/png\" sizes=\"192x192\" href=\"/android-chrome-192x192.png\">\n</head>",
+        "impact": "Low",
+        "difficulty": "Easy",
+        "estimated_time": "15 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/favicon-in-search"
+    },
+    "HTTP/2": {
+        "why_it_matters": "HTTP/2 enables multiplexing (loading multiple resources over a single connection), header compression, and server push — making pages load 30-50% faster than HTTP/1.1. Faster page loads directly improve Core Web Vitals and Google rankings. Most modern hosting providers and CDNs support HTTP/2 by default.",
+        "how_to_fix": [
+            "Check if your hosting provider supports HTTP/2 (most do with HTTPS enabled)",
+            "Ensure your site uses HTTPS — HTTP/2 requires SSL/TLS in all major browsers",
+            "Enable HTTP/2 in your web server configuration (Apache, Nginx)",
+            "Consider upgrading to HTTP/3 (QUIC) for even faster connections",
+            "Test with tools like KeyCDN HTTP/2 Test or Chrome DevTools"
+        ],
+        "code_example": "# Enable HTTP/2 in Nginx\nserver {\n    listen 443 ssl http2;\n    ssl_certificate /path/to/cert.pem;\n    ssl_certificate_key /path/to/key.pem;\n}\n\n# Apache — Enable HTTP/2 module\nLoadModule http2_module modules/mod_http2.so\nProtocols h2 h2c http/1.1",
+        "impact": "Medium",
+        "difficulty": "Medium",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://web.dev/performance-http2/"
+    },
+    "Redirect Chain": {
+        "why_it_matters": "Redirect chains (A → B → C → D) slow page loading, waste crawl budget, and dilute PageRank with each hop. Google follows a maximum of 10 redirects before giving up. Each redirect adds 100-500ms of latency. Long chains can also cause redirect loops that make pages completely inaccessible.",
+        "how_to_fix": [
+            "Audit all redirects using Screaming Frog or your server logs",
+            "Replace chains (A→B→C) with direct redirects (A→C)",
+            "Use 301 (permanent) redirects, not 302 (temporary) for SEO value transfer",
+            "Fix redirect loops — they make pages completely unreachable",
+            "Update internal links to point directly to final destination URLs",
+            "Keep total redirects to a maximum of 1 hop"
+        ],
+        "code_example": "# BAD: Redirect chain\n/old-page → /renamed-page → /final-page  (2 hops, slow)\n\n# GOOD: Direct redirect\n/old-page → /final-page  (1 hop, fast)\n\n# .htaccess fix\nRedirect 301 /old-page https://example.com/final-page\n\n# Remove intermediate:\n# DELETE: Redirect 301 /old-page /renamed-page\n# DELETE: Redirect 301 /renamed-page /final-page",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "20 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/301-redirects"
+    },
+    "Open Graph Tags": {
+        "why_it_matters": "Open Graph (OG) tags control how your pages appear when shared on Facebook, LinkedIn, Twitter, WhatsApp, and other social platforms. Without OG tags, social platforms auto-generate unpredictable previews. Properly configured OG tags increase social media click-through rates by 150-200% and drive significant referral traffic.",
+        "how_to_fix": [
+            "Add og:title — the title shown in social shares (60-90 characters)",
+            "Add og:description — the snippet text (155-200 characters)",
+            "Add og:image — a high-quality image (1200x630px recommended)",
+            "Add og:url — the canonical URL of the page",
+            "Add og:type — usually 'website' or 'article'",
+            "For Twitter, add twitter:card, twitter:title, twitter:description, twitter:image",
+            "Test with Facebook Sharing Debugger and Twitter Card Validator"
+        ],
+        "code_example": "<head>\n  <!-- Open Graph -->\n  <meta property=\"og:title\" content=\"Your Page Title\">\n  <meta property=\"og:description\" content=\"Compelling description for social sharing\">\n  <meta property=\"og:image\" content=\"https://example.com/og-image-1200x630.jpg\">\n  <meta property=\"og:url\" content=\"https://example.com/page\">\n  <meta property=\"og:type\" content=\"website\">\n  \n  <!-- Twitter Card -->\n  <meta name=\"twitter:card\" content=\"summary_large_image\">\n  <meta name=\"twitter:title\" content=\"Your Page Title\">\n  <meta name=\"twitter:description\" content=\"Description for Twitter\">\n  <meta name=\"twitter:image\" content=\"https://example.com/twitter-card.jpg\">\n</head>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "15 minutes",
+        "learn_more_url": "https://ogp.me/"
+    },
+    "Structured Data": {
+        "why_it_matters": "Structured data (Schema.org JSON-LD) helps Google understand your content type (article, product, FAQ, recipe, event) and enables rich results — star ratings, FAQs, breadcrumbs, and product prices directly in search results. Pages with rich results get 20-30% higher CTR than plain blue links. It's the key to standing out in competitive SERPs.",
+        "how_to_fix": [
+            "Choose the right schema type for your content (Article, Product, FAQ, LocalBusiness, etc.)",
+            "Implement structured data using JSON-LD format (Google's preferred format)",
+            "Place the JSON-LD script tag in the <head> or at the end of <body>",
+            "Include all required properties for your chosen schema type",
+            "Test with Google's Rich Results Test tool",
+            "Monitor structured data errors in Google Search Console's Enhancements report"
+        ],
+        "code_example": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"Article\",\n  \"headline\": \"Complete SEO Guide 2026\",\n  \"author\": {\n    \"@type\": \"Person\",\n    \"name\": \"Author Name\"\n  },\n  \"datePublished\": \"2026-07-22\",\n  \"image\": \"https://example.com/article-image.jpg\",\n  \"description\": \"A comprehensive guide to SEO.\"\n}\n</script>\n\n<!-- FAQ Schema -->\n<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"FAQPage\",\n  \"mainEntity\": [{\n    \"@type\": \"Question\",\n    \"name\": \"What is SEO?\",\n    \"acceptedAnswer\": {\n      \"@type\": \"Answer\",\n      \"text\": \"SEO stands for Search Engine Optimization...\"\n    }\n  }]\n}\n</script>",
+        "impact": "High",
+        "difficulty": "Medium",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data"
+    },
+    "Keyword in Title": {
+        "why_it_matters": "Having your target keyword in the page title is one of the strongest on-page ranking signals. Google highlights matching keywords in bold in search results, making your listing more eye-catching. Titles with the keyword in the first 3-5 words perform significantly better than those with the keyword at the end.",
+        "how_to_fix": [
+            "Include your primary keyword early in the title tag (first 60 characters)",
+            "Place the most important keyword within the first 3-5 words",
+            "Don't keyword-stuff — use the keyword once, naturally",
+            "Add related modifiers after the primary keyword (guide, tips, best, how to)",
+            "A/B test different title variations using Google Search Console CTR data"
+        ],
+        "code_example": "<!-- GOOD: Keyword first -->\n<title>SEO Audit Checklist - 50 Essential Checks for 2026</title>\n\n<!-- OKAY: Keyword present but not first -->\n<title>The Complete 2026 Guide to SEO Audit Best Practices</title>\n\n<!-- BAD: Keyword missing -->\n<title>Our Latest Guide to Digital Marketing</title>",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/title-link"
+    },
+    "Keyword in Meta": {
+        "why_it_matters": "Including your target keyword in the meta description doesn't directly improve rankings, but Google bolds matching keywords in search result snippets. This visual emphasis dramatically increases click-through rate (CTR) which IS an indirect ranking signal. Users naturally click on results where their search query appears highlighted.",
+        "how_to_fix": [
+            "Include your primary keyword naturally in the meta description",
+            "Place the keyword in the first 120 characters (visible on mobile)",
+            "Add 1-2 related long-tail variations alongside the primary keyword",
+            "Write the description as a compelling pitch, not a keyword list",
+            "End with a call-to-action: 'Learn more', 'Get started', 'Free guide'"
+        ],
+        "code_example": "<meta name=\"description\" content=\"Complete SEO audit checklist with 130+ real-time checks. Analyze on-page SEO, technical issues, and keyword optimization. Free instant analysis — start now.\">",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/snippet"
+    },
+    "Keyword in H1": {
+        "why_it_matters": "The H1 heading is the most prominent text element on your page. Google uses it as a strong topical relevance signal. Pages where the H1 contains the target keyword rank on average 10 positions higher than pages without keyword-optimized H1 tags. The H1 should immediately tell visitors (and Googlebot) what the page is about.",
+        "how_to_fix": [
+            "Include your primary keyword naturally in the H1 heading",
+            "Make the H1 unique and descriptive — not identical to the title tag",
+            "Keep the H1 concise: 20-70 characters",
+            "Don't use multiple H1 tags — one per page only",
+            "Match user search intent — if they search 'best running shoes', your H1 should reference that"
+        ],
+        "code_example": "<!-- GOOD -->\n<h1>Best Running Shoes for Marathon Training in 2026</h1>\n\n<!-- BAD -->\n<h1>Welcome to Our Website</h1>  <!-- No keyword! -->",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/fundamentals/seo-starter-guide"
+    },
+    "Keyword in URL": {
+        "why_it_matters": "Keywords in URLs help both users and search engines understand what a page is about before they even visit it. Google bolds matching URL keywords in search results, improving CTR. Clean, keyword-rich URLs are also more memorable and shareable. This is a lightweight but consistent ranking factor.",
+        "how_to_fix": [
+            "Include your primary keyword in the URL slug",
+            "Keep the URL slug short: 3-5 words maximum",
+            "Use hyphens to separate words, not underscores",
+            "Remove stop words (a, the, and, of) from URLs",
+            "Don't change existing URLs without 301 redirects — it will cause 404 errors"
+        ],
+        "code_example": "<!-- GOOD -->\nhttps://example.com/seo-audit-checklist\nhttps://example.com/blog/keyword-research-guide\n\n<!-- BAD -->\nhttps://example.com/page?id=12345\nhttps://example.com/2026/07/22/the-complete-and-ultimate-guide-to-seo",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "10 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/url-structure"
+    },
+    "Keyword Density": {
+        "why_it_matters": "Keyword density measures how often your target keyword appears relative to total word count. Too low (<0.5%) and Google may not associate your page with the keyword. Too high (>3%) and Google may penalize it as keyword stuffing. The optimal range is 1-2.5%, with natural language usage and semantic variations.",
+        "how_to_fix": [
+            "Calculate your keyword density: (keyword count / total words) × 100",
+            "Aim for 1-2.5% density for your primary keyword",
+            "Use LSI (Latent Semantic Indexing) keywords — related terms and synonyms",
+            "Don't force keywords — write naturally for humans first",
+            "Distribute keywords evenly throughout the content, not clustered in one section",
+            "Include keyword variations: singular/plural, different word order"
+        ],
+        "code_example": "<!-- Example: 1000-word article with keyword 'SEO audit' -->\n<!-- Target: 10-25 occurrences = 1-2.5% density -->\n\n<!-- GOOD: Natural usage -->\n<p>Running an SEO audit is the first step to improving your website rankings.</p>\n<p>Our comprehensive SEO audit tool checks 130+ factors...</p>\n\n<!-- BAD: Keyword stuffing -->\n<p>Our SEO audit tool provides the best SEO audit for SEO audit needs. SEO audit experts recommend regular SEO audits.</p>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "15 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/essentials/spam-policies#keyword-stuffing"
+    },
+    "SERP Preview": {
+        "why_it_matters": "Your SERP (Search Engine Results Page) preview is exactly what users see in Google before clicking. The combination of title, URL, and meta description determines your click-through rate. An optimized SERP preview can increase organic clicks by 30-50% without changing your actual ranking position.",
+        "how_to_fix": [
+            "Keep title tag between 50-60 characters to avoid truncation",
+            "Keep meta description between 150-160 characters",
+            "Use power words in the title: 'Best', 'Ultimate', 'Complete', 'Free', '2026'",
+            "Add numbers: 'Top 10', '5 Steps', '130+ Checks'",
+            "Include a call-to-action in the meta description",
+            "Use structured data to enable rich results (star ratings, FAQs, breadcrumbs)",
+            "Test your SERP appearance with Google's Rich Results Test"
+        ],
+        "code_example": "<!-- Optimized SERP preview -->\n<title>SEO Audit Tool — 130+ Free Checks | SEO Checker Pro</title>\n<meta name=\"description\" content=\"Analyze your website with 130+ real-time SEO checks across 10 categories. Get actionable recommendations, detailed reports, and competitor insights. Start free now.\">\n\n<!-- Result in Google:\n📄 SEO Audit Tool — 130+ Free Checks | SEO Checker Pro\n   https://seocheckerpro.com/audit\n   Analyze your website with 130+ real-time SEO checks across\n   10 categories. Get actionable recommendations... -->",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "10 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/title-link"
+    },
+    "Core Response Speed": {
+        "why_it_matters": "Server response time (TTFB — Time To First Byte) measures how fast your server delivers the first byte of a page. Google recommends TTFB under 200ms. Slow TTFB delays everything — rendering, DOM parsing, and resource loading. It's the foundation of all Core Web Vitals performance metrics.",
+        "how_to_fix": [
+            "Upgrade to a faster hosting provider or plan (VPS/dedicated over shared hosting)",
+            "Enable server-side caching (Redis, Memcached, Varnish)",
+            "Optimize database queries — add indexes, reduce N+1 queries",
+            "Use a CDN to serve content from edge servers near the user",
+            "Enable Gzip/Brotli compression for HTML response",
+            "Reduce server-side processing — cache rendered HTML pages"
+        ],
+        "code_example": "# Nginx — Enable caching\nproxy_cache_path /tmp/nginx_cache levels=1:2 keys_zone=my_cache:10m;\nserver {\n    location / {\n        proxy_cache my_cache;\n        proxy_cache_valid 200 60m;\n    }\n}\n\n# Express.js — Response compression\nconst compression = require('compression');\napp.use(compression());",
+        "impact": "High",
+        "difficulty": "Medium",
+        "estimated_time": "1-2 hours",
+        "learn_more_url": "https://web.dev/ttfb/"
+    },
+    "Security Headers": {
+        "why_it_matters": "Security headers protect your website and users from common attacks like XSS (Cross-Site Scripting), clickjacking, MIME sniffing, and man-in-the-middle attacks. While not a direct SEO ranking factor, security incidents (malware, phishing) trigger Google Safe Browsing warnings that completely destroy organic traffic.",
+        "how_to_fix": [
+            "Add X-Content-Type-Options: nosniff to prevent MIME-type sniffing",
+            "Add X-Frame-Options: SAMEORIGIN to prevent clickjacking",
+            "Add X-XSS-Protection: 1; mode=block for XSS filtering",
+            "Add Content-Security-Policy (CSP) to control resource loading",
+            "Add Strict-Transport-Security (HSTS) to force HTTPS",
+            "Add Referrer-Policy: strict-origin-when-cross-origin",
+            "Add Permissions-Policy to control browser feature access"
+        ],
+        "code_example": "# Nginx — Add security headers\nadd_header X-Content-Type-Options \"nosniff\" always;\nadd_header X-Frame-Options \"SAMEORIGIN\" always;\nadd_header X-XSS-Protection \"1; mode=block\" always;\nadd_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;\nadd_header Referrer-Policy \"strict-origin-when-cross-origin\" always;\nadd_header Content-Security-Policy \"default-src 'self'; script-src 'self' 'unsafe-inline';\" always;\nadd_header Permissions-Policy \"camera=(), microphone=(), geolocation=()\" always;\n\n# Apache .htaccess\nHeader always set X-Content-Type-Options \"nosniff\"\nHeader always set X-Frame-Options \"SAMEORIGIN\"",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "20 minutes",
+        "learn_more_url": "https://web.dev/security-headers/"
+    },
+    "SSL Certificate": {
+        "why_it_matters": "A valid SSL/TLS certificate is required for HTTPS, which is a confirmed Google ranking factor. Expired or invalid certificates trigger browser warnings ('Your connection is not private') that cause 90%+ of visitors to immediately leave. SSL also protects user data and builds trust.",
+        "how_to_fix": [
+            "Get a free SSL certificate from Let's Encrypt (auto-renewable)",
+            "Install the certificate on your web server",
+            "Set up auto-renewal to prevent expiration (certbot renew --dry-run)",
+            "Test certificate validity at ssllabs.com/ssltest",
+            "Ensure your certificate covers all subdomains (wildcard or SAN cert)",
+            "Monitor certificate expiration dates with uptimerobot.com"
+        ],
+        "code_example": "# Install Let's Encrypt certificate with Certbot\nsudo apt install certbot python3-certbot-nginx\nsudo certbot --nginx -d example.com -d www.example.com\n\n# Auto-renewal cron job\n0 12 * * * /usr/bin/certbot renew --quiet\n\n# Test renewal\nsudo certbot renew --dry-run",
+        "impact": "Critical",
+        "difficulty": "Easy",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://letsencrypt.org/getting-started/"
+    },
+    "Broken Links": {
+        "why_it_matters": "Broken links (404 errors) create a poor user experience and waste Google's crawl budget. They signal to search engines that your site is poorly maintained, which can suppress overall domain authority. Each broken link is a dead-end that increases bounce rate and prevents PageRank flow to linked pages.",
+        "how_to_fix": [
+            "Run a full site crawl with Screaming Frog or our Site Audit tool",
+            "Fix broken internal links by updating the href to the correct URL",
+            "Set up 301 redirects for pages that have permanently moved",
+            "Remove links to pages that no longer exist and have no replacement",
+            "Monitor for new broken links monthly using Google Search Console",
+            "Create a custom 404 page with helpful navigation back to working content"
+        ],
+        "code_example": "<!-- Fix broken internal link -->\n<!-- Before (broken): -->\n<a href=\"/old-deleted-page\">Our Services</a>\n\n<!-- After (fixed): -->\n<a href=\"/services\">Our Services</a>\n\n<!-- .htaccess 301 redirect -->\nRedirect 301 /old-deleted-page https://example.com/services",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/http-network-errors"
+    },
+    "Image Format": {
+        "why_it_matters": "Modern image formats (WebP, AVIF) are 25-50% smaller than JPEG/PNG while maintaining the same visual quality. Smaller images mean faster page loads, which directly improve Core Web Vitals (LCP — Largest Contentful Paint) and Google rankings. Unoptimized images are the #1 cause of slow page load times.",
+        "how_to_fix": [
+            "Convert images to WebP format (supported by 97%+ of browsers)",
+            "Use AVIF for even better compression (supported by modern browsers)",
+            "Implement <picture> element with format fallbacks",
+            "Set explicit width and height attributes to prevent layout shift (CLS)",
+            "Add loading='lazy' to images below the fold",
+            "Compress images with tools: Squoosh.app, TinyPNG, ImageOptim"
+        ],
+        "code_example": "<!-- Modern image with fallbacks -->\n<picture>\n  <source srcset=\"image.avif\" type=\"image/avif\">\n  <source srcset=\"image.webp\" type=\"image/webp\">\n  <img src=\"image.jpg\" alt=\"Description\" width=\"800\" height=\"450\" loading=\"lazy\">\n</picture>\n\n<!-- Simple WebP with lazy loading -->\n<img src=\"photo.webp\" alt=\"Product photo\" width=\"600\" height=\"400\" loading=\"lazy\" decoding=\"async\">",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "30 minutes",
+        "learn_more_url": "https://web.dev/uses-webp-images/"
+    },
+    "Accessibility": {
+        "why_it_matters": "Web accessibility ensures your site is usable by people with disabilities (15% of the global population). Google rewards accessible sites because they provide a better user experience for everyone. Accessibility compliance (WCAG 2.1) also reduces legal risk and expands your potential audience significantly.",
+        "how_to_fix": [
+            "Add alt text to all images for screen reader users",
+            "Ensure sufficient color contrast (4.5:1 ratio for normal text)",
+            "Add ARIA labels to interactive elements (buttons, forms, menus)",
+            "Ensure all content is navigable via keyboard (Tab, Enter, Escape)",
+            "Use semantic HTML elements (<button>, <nav>, <main>) instead of styled <div>s",
+            "Add skip navigation link for keyboard users",
+            "Test with screen readers (NVDA, VoiceOver) and browser accessibility tools"
+        ],
+        "code_example": "<!-- Skip navigation -->\n<a href=\"#main-content\" class=\"skip-link\">Skip to main content</a>\n\n<!-- Accessible button -->\n<button aria-label=\"Close dialog\" onclick=\"closeModal()\">\n  <svg aria-hidden=\"true\">...</svg>\n</button>\n\n<!-- Accessible form -->\n<label for=\"email\">Email Address</label>\n<input type=\"email\" id=\"email\" aria-required=\"true\">\n\n<!-- ARIA landmark -->\n<nav aria-label=\"Main navigation\">...</nav>\n<main id=\"main-content\" role=\"main\">...</main>",
+        "impact": "Medium",
+        "difficulty": "Medium",
+        "estimated_time": "2-4 hours",
+        "learn_more_url": "https://web.dev/accessibility/"
+    },
+    "DNS Prefetch": {
+        "why_it_matters": "DNS prefetch tells the browser to resolve domain names for external resources before the user clicks a link or needs the resource. This saves 20-120ms per external domain lookup. For pages loading fonts from Google, analytics scripts, and CDN assets, DNS prefetching can noticeably improve perceived load time.",
+        "how_to_fix": [
+            "Identify external domains your page loads resources from (fonts, CDN, analytics, APIs)",
+            "Add <link rel='dns-prefetch'> for each external domain",
+            "Use <link rel='preconnect'> for critical third-party origins (establishes full connection)",
+            "Place prefetch/preconnect hints early in the <head> section",
+            "Don't prefetch too many domains — limit to 4-6 most critical origins"
+        ],
+        "code_example": "<head>\n  <!-- DNS Prefetch for external resources -->\n  <link rel=\"dns-prefetch\" href=\"//fonts.googleapis.com\">\n  <link rel=\"dns-prefetch\" href=\"//cdn.example.com\">\n  <link rel=\"dns-prefetch\" href=\"//www.google-analytics.com\">\n  \n  <!-- Preconnect for critical origins (stronger than prefetch) -->\n  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>\n  <link rel=\"preconnect\" href=\"https://cdn.example.com\">\n</head>",
+        "impact": "Low",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://web.dev/preconnect-and-dns-prefetch/"
+    },
+    "Canonical Hostname": {
+        "why_it_matters": "If both www.example.com and example.com serve the same content without a canonical redirect, Google treats them as separate sites. This splits your backlinks, PageRank, and domain authority in half. A canonical hostname redirect consolidates all signals to one preferred version.",
+        "how_to_fix": [
+            "Choose one canonical version: www or non-www",
+            "Set up 301 redirect from non-preferred to preferred version",
+            "Update Google Search Console to use your preferred version",
+            "Ensure all internal links, sitemap, and canonical tags use the preferred version",
+            "Set the preferred domain in Google Search Console (if available)"
+        ],
+        "code_example": "# Redirect non-www to www (Apache .htaccess)\nRewriteEngine On\nRewriteCond %{HTTP_HOST} !^www\\. [NC]\nRewriteRule ^(.*)$ https://www.%{HTTP_HOST}/$1 [R=301,L]\n\n# Redirect www to non-www (Nginx)\nserver {\n    server_name www.example.com;\n    return 301 https://example.com$request_uri;\n}",
+        "impact": "High",
+        "difficulty": "Easy",
+        "estimated_time": "10 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/crawling-indexing/canonicalization"
+    },
+    "Subheading Distribution": {
+        "why_it_matters": "Subheadings (H2-H6) break up content into scannable sections, improving readability and user engagement. Google uses subheadings to understand content structure and may display them as featured snippet answers. Pages with well-distributed subheadings every 200-300 words have 36% lower bounce rates.",
+        "how_to_fix": [
+            "Add H2 subheadings every 200-300 words of content",
+            "Use H3 tags to break down complex H2 sections further",
+            "Make subheadings descriptive and keyword-rich (not just 'Introduction', 'Conclusion')",
+            "Use question-format subheadings to target featured snippets (e.g., 'What is SEO?')",
+            "Maintain a logical hierarchy: H2 → H3 → H4",
+            "Use numbered lists and bullet points under subheadings for scanability"
+        ],
+        "code_example": "<!-- Well-distributed subheadings -->\n<h1>Complete Guide to Technical SEO</h1>\n<p>Introduction paragraph (100 words)...</p>\n\n<h2>What is Technical SEO?</h2>\n<p>200-300 words explaining the concept...</p>\n\n<h2>Why Technical SEO Matters for Rankings</h2>\n<p>200-300 words with data and examples...</p>\n  <h3>Impact on Core Web Vitals</h3>\n  <h3>Impact on Crawl Budget</h3>\n\n<h2>10 Essential Technical SEO Checks</h2>\n  <h3>1. Site Speed Optimization</h3>\n  <h3>2. Mobile Responsiveness</h3>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "20 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/fundamentals/seo-starter-guide#use-headings"
+    },
+    "Title Character Length": {
+        "why_it_matters": "Google displays approximately 50-60 characters of a title tag in search results. Titles exceeding this limit get truncated with '...' which looks unprofessional and may cut off important keywords. Titles that are too short waste valuable SERP real estate that could be used to attract clicks.",
+        "how_to_fix": [
+            "Aim for 50-60 characters (including spaces)",
+            "Front-load important keywords in the first 50 characters",
+            "If truncated, ensure the visible portion still makes sense",
+            "Use a SERP preview tool to visualize how your title appears",
+            "Include brand name at the end if space allows"
+        ],
+        "code_example": "<!-- Optimal length (55 chars) -->\n<title>SEO Audit Checklist: 50 Essential Checks for 2026</title>\n\n<!-- Too short (20 chars) — wasted SERP space -->\n<title>SEO Checklist</title>\n\n<!-- Too long (85 chars) — will be truncated -->\n<title>The Complete and Ultimate SEO Audit Checklist With All Essential Checks for 2026 and Beyond</title>",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/title-link"
+    },
+    "Meta Description Character Length": {
+        "why_it_matters": "Google displays approximately 150-160 characters of the meta description. Descriptions that are too long get truncated, potentially cutting off your call-to-action. Too-short descriptions fail to provide enough context for users to decide whether to click your result.",
+        "how_to_fix": [
+            "Write descriptions between 150-160 characters",
+            "Put the most compelling information in the first 120 characters (mobile truncation)",
+            "End with a clear CTA before the 160-character mark",
+            "Include primary keyword early for bold highlighting in SERPs"
+        ],
+        "code_example": "<!-- Optimal length (155 chars) -->\n<meta name=\"description\" content=\"Analyze your website with 130+ real-time SEO checks. Get detailed recommendations, category scores, and PDF reports. Start your free audit now.\">\n\n<!-- Too short (45 chars) -->\n<meta name=\"description\" content=\"We provide SEO audit services.\">",
+        "impact": "Medium",
+        "difficulty": "Easy",
+        "estimated_time": "5 minutes",
+        "learn_more_url": "https://developers.google.com/search/docs/appearance/snippet"
+    },
+}
 
 
 class SEOAnalyzer:
@@ -4373,9 +5066,14 @@ class SEOAnalyzer:
 
         recommendations = {"critical": [], "warning": [], "info": []}
         for check in self.checks:
+            # Auto-attach solution from knowledge base for fail/warning checks
+            if check.status in ("fail", "warning") and not check.solution:
+                check.solution = SEO_SOLUTIONS.get(check.name)
             if check.recommendation:
                 entry = {"check": check.name, "message": check.recommendation,
                          "category": check.category}
+                if check.solution:
+                    entry["solution"] = check.solution
                 if check.status == "fail":
                     recommendations["critical"].append(entry)
                 elif check.status == "warning":
