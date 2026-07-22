@@ -339,27 +339,188 @@ function renderResults(data) {
     saveToHistory(data);
     checkAndTriggerClientSidePageSpeed(data);
 }
+function getPrintRadarChartDataUrl(scores) {
+    if (!scores || Object.keys(scores).length === 0) return "";
+    try {
+        const canvas = document.createElement("canvas");
+        const dpr = 2.5; // High DPI for crystal-clear PDF rendering
+        const w = 420, h = 420;
+        canvas.width = w * dpr;
+        canvas.height = h * dpr;
+        const ctx = canvas.getContext("2d");
+        ctx.scale(dpr, dpr);
+
+        // Solid crisp white background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, w, h);
+
+        const cx = w / 2, cy = h / 2, radius = 115;
+        const cats = Object.entries(scores);
+        const n = cats.length;
+        const angleStep = (2 * Math.PI) / n;
+        const startAngle = -Math.PI / 2;
+
+        // Draw grid rings (polygons)
+        for (let ring = 1; ring <= 4; ring++) {
+            const r = (radius / 4) * ring;
+            ctx.beginPath();
+            for (let i = 0; i <= n; i++) {
+                const angle = startAngle + i * angleStep;
+                const x = cx + r * Math.cos(angle);
+                const y = cy + r * Math.sin(angle);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = ring === 4 ? "#94a3b8" : "#e2e8f0";
+            ctx.lineWidth = ring === 4 ? 1.5 : 1;
+            ctx.stroke();
+        }
+
+        // Draw axes and crisp labels
+        cats.forEach(([key, cat], i) => {
+            const angle = startAngle + i * angleStep;
+            const cosAngle = Math.cos(angle);
+            const sinAngle = Math.sin(angle);
+            
+            const lx = cx + (radius + 28) * cosAngle;
+            const ly = cy + (radius + 28) * sinAngle;
+
+            // Axis line
+            ctx.beginPath();
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(cx + radius * cosAngle, cy + radius * sinAngle);
+            ctx.strokeStyle = "#cbd5e1";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Label
+            ctx.save();
+            ctx.font = "700 11px Inter, system-ui, sans-serif";
+            ctx.fillStyle = "#0f172a";
+            
+            if (Math.abs(cosAngle) < 0.1) {
+                ctx.textAlign = "center";
+            } else if (cosAngle > 0) {
+                ctx.textAlign = "left";
+            } else {
+                ctx.textAlign = "right";
+            }
+
+            let textY = ly;
+            if (sinAngle > 0.5) textY += 4;
+            if (sinAngle < -0.5) textY -= 2;
+
+            const nameStr = (cat.name || key).replace(" Optimization", "").replace(" Intelligence", "");
+            ctx.fillText(`${nameStr} (${cat.score || 0}%)`, lx, textY);
+            ctx.restore();
+        });
+
+        // Draw data polygon
+        ctx.beginPath();
+        cats.forEach(([key, cat], i) => {
+            const angle = startAngle + i * angleStep;
+            const scorePct = Math.min(100, Math.max(0, cat.score || 0)) / 100;
+            const r = radius * scorePct;
+            const x = cx + r * Math.cos(angle);
+            const y = cy + r * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = "rgba(79, 70, 229, 0.18)";
+        ctx.fill();
+        ctx.strokeStyle = "#4f46e5";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        // Draw data points
+        cats.forEach(([key, cat], i) => {
+            const angle = startAngle + i * angleStep;
+            const scorePct = Math.min(100, Math.max(0, cat.score || 0)) / 100;
+            const r = radius * scorePct;
+            const x = cx + r * Math.cos(angle);
+            const y = cy + r * Math.sin(angle);
+
+            ctx.beginPath();
+            ctx.arc(x, y, 4.5, 0, 2 * Math.PI);
+            ctx.fillStyle = "#4f46e5";
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = "#ffffff";
+            ctx.stroke();
+        });
+
+        return canvas.toDataURL("image/png");
+    } catch (e) {
+        console.error("Error generating print radar chart:", e);
+        return "";
+    }
+}
+
 function buildPrintReport(data) {
     try {
         const el = document.getElementById("printReport");
         if (!el) return;
         
-        // Grab radar chart image to embed in PDF
-        const radarCanvas = document.getElementById("radarChart");
-        let radarImgHtml = "";
-        if (radarCanvas) {
-            try {
-                const imgData = radarCanvas.toDataURL("image/png");
-                radarImgHtml = `
-                    <div style="text-align: center; margin: 20px 0; break-inside: avoid;">
-                        <h4 style="font-size: 11px; font-weight: 700; color: #1e293b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Category Score Distribution</h4>
-                        <img src="${imgData}" style="width: 240px; height: 240px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; background: #fff;" />
-                    </div>
+        // Generate crisp print-optimized Radar Chart
+        const printRadarImg = getPrintRadarChartDataUrl(data.category_scores);
+        
+        let categoryRowsHtml = "";
+        if (data.category_scores) {
+            for (const [key, cat] of Object.entries(data.category_scores)) {
+                const sc = cat.score || 0;
+                const color = sc >= 80 ? "#16a34a" : (sc >= 60 ? "#d97706" : "#dc2626");
+                const badgeBg = sc >= 80 ? "#dcfce7" : (sc >= 60 ? "#fef3c7" : "#fee2e2");
+                const badgeText = sc >= 80 ? "#15803d" : (sc >= 60 ? "#b45309" : "#b91c1c");
+                const statusLabel = sc >= 80 ? "Optimal" : (sc >= 60 ? "Needs Work" : "Action Required");
+
+                categoryRowsHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0;">
+                        <td style="padding: 6px 0; font-weight: 600; color: #0f172a;">${cat.name || key}</td>
+                        <td style="padding: 6px 0; text-align: center;">
+                            <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span style="font-weight: 700; color: ${color}; width: 32px; text-align: right;">${sc}%</span>
+                                <div style="width: 45px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; display: inline-block;">
+                                    <div style="width: ${sc}%; height: 100%; background: ${color}; border-radius: 3px;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td style="padding: 6px 0; text-align: right;">
+                            <span style="background: ${badgeBg}; color: ${badgeText}; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 10px;">
+                                ${statusLabel}
+                            </span>
+                        </td>
+                    </tr>
                 `;
-            } catch (canvasErr) {
-                console.error("Error reading radar chart canvas for PDF:", canvasErr);
             }
         }
+
+        const categoryBreakdownSection = `
+            <div style="margin: 24px 0; padding: 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; page-break-inside: avoid; -webkit-print-color-adjust: exact;">
+                <h4 style="font-size: 13px; font-weight: 800; color: #0f172a; margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid #6366f1; padding-bottom: 6px;">
+                    Category Score Distribution & Breakdown (10 Categories)
+                </h4>
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 260px; text-align: center;">
+                        ${printRadarImg ? `<img src="${printRadarImg}" style="width: 280px; height: 280px; display: block; margin: 0 auto; border-radius: 8px;" />` : ''}
+                    </div>
+                    <div style="flex: 1.2; min-width: 280px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px; color: #1e293b;">
+                            <thead>
+                                <tr style="border-bottom: 2px solid #cbd5e1; text-align: left;">
+                                    <th style="padding: 6px 0; font-weight: 700; color: #475569;">Category</th>
+                                    <th style="padding: 6px 0; font-weight: 700; color: #475569; text-align: center;">Score</th>
+                                    <th style="padding: 6px 0; font-weight: 700; color: #475569; text-align: right;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${categoryRowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        `;
         
         let html = `
             <div class="print-header">
@@ -404,7 +565,7 @@ function buildPrintReport(data) {
                 </div>
             </div>
             
-            ${radarImgHtml}
+            ${categoryBreakdownSection}
         `;
         
         // Iterate through all 10 categories
