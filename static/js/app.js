@@ -99,7 +99,8 @@ document.addEventListener("DOMContentLoaded", () => {
         { id: "cgDomain1", fn: () => runCompetitorCompare() },
         { id: "cgDomain2", fn: () => runCompetitorCompare() },
         { id: "rtDomain", fn: () => runRankTracker() },
-        { id: "rtKeywords", fn: () => runRankTracker() }
+        { id: "rtKeywords", fn: () => runRankTracker() },
+        { id: "blDomain", fn: () => runBacklinkAudit() }
     ];
 
     enterInputs.forEach(item => {
@@ -2369,6 +2370,8 @@ function switchProTool(toolId) {
     } else if (toolId === 'serp-simulator') {
         document.getElementById('serpSimulatorSection').style.display = '';
         updateSerpPreview();
+    } else if (toolId === 'backlink-suite') {
+        document.getElementById('backlinkSuiteSection').style.display = '';
     }
 }
 
@@ -3558,6 +3561,197 @@ function handleLogout() {
 document.addEventListener("DOMContentLoaded", function() {
     updateAuthUI();
 });
+
+/* ═══════════════════════════════════════════════
+   OFF-PAGE BACKLINK INTELLIGENCE SUITE HANDLER
+   ═══════════════════════════════════════════════ */
+
+function runBacklinkAudit() {
+    const domainInput = document.getElementById("blDomain");
+    const domain = domainInput ? domainInput.value.trim() : "";
+    if (!domain) {
+        alert("Please enter a domain or website URL to audit backlinks.");
+        if (domainInput) domainInput.focus();
+        return;
+    }
+
+    const container = document.getElementById("blResults");
+    if (!container) return;
+
+    container.style.display = "block";
+    container.innerHTML = `
+        <div style="text-align:center; padding: 50px 20px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; margin-top: 20px;">
+            <div style="width:36px; height:36px; border:3px solid rgba(244,63,94,0.2); border-top:3px solid #fb7185; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px auto;"></div>
+            <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; margin-bottom: 6px;">Crawling Live Web for Backlinks...</h3>
+            <p style="color: #94a3b8; font-size: 0.9rem;">Verifying external referring pages, anchor text, follow/nofollow status, and computing Domain Authority for "${esc(domain)}"...</p>
+        </div>
+    `;
+
+    fetch("/api/backlink-intelligence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: domain })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            renderBacklinkResults(data);
+        } else {
+            container.innerHTML = `<div style="color:#ef4444; padding:20px; background:var(--bg-card); border-radius:16px;">Error: ${esc(data.error || 'Backlink audit failed.')}</div>`;
+        }
+    })
+    .catch(err => {
+        container.innerHTML = `<div style="color:#ef4444; padding:20px; background:var(--bg-card); border-radius:16px;">Network error: ${esc(err.message)}</div>`;
+    });
+}
+
+function renderBacklinkResults(data) {
+    const container = document.getElementById("blResults");
+    if (!container) return;
+
+    const toxicBadgeColor = data.toxic_risk_level === 'High' ? '#f87171' : (data.toxic_risk_level === 'Medium' ? '#fbbf24' : '#34d399');
+
+    let anchorsHtml = (data.top_anchors || []).map(a => `
+        <div style="margin-bottom: 12px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+                <span style="font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 6px;">
+                    "${esc(a.anchor)}"
+                    <span style="font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.06); color: #a5b4fc; font-weight: 600;">${esc(a.category)}</span>
+                </span>
+                <span style="color: #cbd5e1; font-weight: 700;">${a.count} links (${a.percentage}%)</span>
+            </div>
+            <div style="height: 6px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden;">
+                <div style="height: 100%; width: ${Math.min(100, a.percentage)}%; background: linear-gradient(90deg, #6366f1, #fb7185); border-radius: 10px;"></div>
+            </div>
+        </div>
+    `).join('');
+
+    let backlinksRows = (data.verified_backlinks || []).map(b => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
+            <td style="padding: 14px; font-weight: 700; color: #ffffff;">
+                <div style="font-size: 0.9rem; color: #ffffff; margin-bottom: 2px;">${esc(b.referring_title)}</div>
+                <a href="${esc(b.referring_url)}" target="_blank" rel="noopener noreferrer" style="font-size: 0.78rem; color: #818cf8; text-decoration: none; word-break: break-all;">${esc(b.referring_url.substring(0, 55))}...</a>
+            </td>
+            <td style="padding: 14px; font-size: 0.86rem; color: #f8fafc; font-weight: 600;">
+                "${esc(b.anchor_text)}"
+            </td>
+            <td style="padding: 14px; text-align: center;">
+                <span style="padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; background: ${b.link_type === 'Image' ? 'rgba(56,189,248,0.15)' : 'rgba(168,85,247,0.15)'}; color: ${b.link_type === 'Image' ? '#38bdf8' : '#c084fc'};">
+                    ${esc(b.link_type)}
+                </span>
+            </td>
+            <td style="padding: 14px; text-align: center;">
+                <span style="padding: 4px 10px; border-radius: 6px; font-size: 0.78rem; font-weight: 800; background: ${b.is_nofollow ? 'rgba(251,191,36,0.15)' : 'rgba(52,211,153,0.15)'}; color: ${b.is_nofollow ? '#fbbf24' : '#34d399'};">
+                    ${b.is_nofollow ? 'Nofollow' : 'Dofollow'}
+                </span>
+            </td>
+            <td style="padding: 14px; text-align: right;">
+                <a href="${esc(b.referring_url)}" target="_blank" rel="noopener noreferrer" style="background: rgba(255,255,255,0.08); color: #ffffff; border: 1px solid rgba(255,255,255,0.15); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">
+                    Visit &rarr;
+                </a>
+            </td>
+        </tr>
+    `).join('');
+
+    if (!backlinksRows) {
+        backlinksRows = `
+            <tr>
+                <td colspan="5" style="padding: 24px; text-align: center; color: #94a3b8;">
+                    No live referring backlink URLs discovered for this domain query.
+                </td>
+            </tr>
+        `;
+    }
+
+    container.innerHTML = `
+        <!-- Domain Authority & Backlink Summary Cards -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
+            <div style="background: #0f172a; border-left: 4px solid #fb7185; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px;">
+                <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Domain Authority</div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: #ffffff; margin: 4px 0;">${data.domain_authority}<span style="font-size: 1rem; color: #fb7185; margin-left: 6px; font-weight: 800;">${data.domain_authority_grade}</span></div>
+                <div style="font-size: 0.78rem; color: #a5b4fc; font-weight: 600;">Algorithmic DA Rating</div>
+            </div>
+
+            <div style="background: #0f172a; border-left: 4px solid #6366f1; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px;">
+                <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Backlinks</div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: #ffffff; margin: 4px 0;">${data.total_backlinks}</div>
+                <div style="font-size: 0.78rem; color: #818cf8; font-weight: 600;">Verified Active Links</div>
+            </div>
+
+            <div style="background: #0f172a; border-left: 4px solid #38bdf8; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px;">
+                <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Referring Domains</div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: #38bdf8; margin: 4px 0;">${data.referring_domains}</div>
+                <div style="font-size: 0.78rem; color: #7dd3fc; font-weight: 600;">Unique Domain Origins</div>
+            </div>
+
+            <div style="background: #0f172a; border-left: 4px solid #34d399; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px;">
+                <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Follow Link Ratio</div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: #34d399; margin: 4px 0;">${data.follow_ratio}%</div>
+                <div style="font-size: 0.78rem; color: #6ee7b7; font-weight: 600;">Dofollow Equity Share</div>
+            </div>
+
+            <div style="background: #0f172a; border-left: 4px solid ${toxicBadgeColor}; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px;">
+                <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Toxic Link Risk</div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: ${toxicBadgeColor}; margin: 4px 0;">${data.toxic_risk_percent}%</div>
+                <div style="font-size: 0.78rem; color: ${toxicBadgeColor}; font-weight: 700;">${data.toxic_risk_level} Risk Profile</div>
+            </div>
+        </div>
+
+        <!-- Follow vs Nofollow Ratio & Anchor Text Breakdown -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
+            <!-- Follow Ratio Bar -->
+            <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Link Type & Dofollow Equity</h3>
+                
+                <div style="display: flex; justify-content: space-between; font-size: 0.88rem; font-weight: 700; margin-bottom: 8px;">
+                    <span style="color: #34d399;">Dofollow: ${data.follow_links} links (${data.follow_ratio}%)</span>
+                    <span style="color: #fbbf24;">Nofollow: ${data.nofollow_links} links (${(100 - data.follow_ratio).toFixed(1)}%)</span>
+                </div>
+                
+                <div style="height: 14px; background: rgba(255,255,255,0.08); border-radius: 20px; overflow: hidden; display: flex;">
+                    <div style="height: 100%; width: ${data.follow_ratio}%; background: #34d399;"></div>
+                    <div style="height: 100%; width: ${100 - data.follow_ratio}%; background: #fbbf24;"></div>
+                </div>
+
+                <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 14px; line-height: 1.5;">
+                    Dofollow links pass PageRank equity to boost domain authority, while Nofollow links provide natural link profile diversity.
+                </p>
+            </div>
+
+            <!-- Anchor Text Profile -->
+            <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Top Anchor Text Profile</h3>
+                ${anchorsHtml}
+            </div>
+        </div>
+
+        <!-- Verified Referring Pages & Backlinks Table -->
+        <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff;">Verified Referring Pages & Live Backlinks</h3>
+                <span style="font-size: 0.82rem; color: #34d399; font-weight: 700;">● Live Web Crawl Verified</span>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.12); color: #ffffff;">
+                            <th style="padding: 12px; color: #ffffff;">Referring Page & URL</th>
+                            <th style="padding: 12px; color: #ffffff;">Anchor Text</th>
+                            <th style="padding: 12px; text-align: center; color: #ffffff;">Link Type</th>
+                            <th style="padding: 12px; text-align: center; color: #ffffff;">Attribute</th>
+                            <th style="padding: 12px; text-align: right; color: #ffffff;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${backlinksRows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
 
 
 

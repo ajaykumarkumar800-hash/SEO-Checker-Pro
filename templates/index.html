@@ -34,7 +34,7 @@
 
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
-    <link rel="stylesheet" href="/static/css/style.css?v=4.1.0">
+    <link rel="stylesheet" href="/static/css/style.css?v=5.0.0">
 </head>
 <body>
     <a href="#main-content" class="skip-link" style="position:absolute; top:-40px; left:0; background:#000; color:#fff; padding:8px; z-index:100; transition: top 0.2s;" onfocus="this.style.top='0px'" onblur="this.style.top='-40px'">Skip to main content</a>
@@ -86,6 +86,10 @@
                 <button class="sidebar-btn pro-nav-btn" id="pnav-rank-tracker" onclick="switchProTool('rank-tracker')">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
                     Rank Tracker
+                </button>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-backlink-suite" onclick="switchProTool('backlink-suite')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    Backlink Intelligence
                 </button>
 
                 <div class="sidebar-nav-label">Security & Preview</div>
@@ -549,6 +553,28 @@
                         <span style="background: #f1f3f4; color: #3c4043; padding: 4px 10px; border-radius: 100px; font-weight: 500;">✓ PAA Trigger</span>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── OFF-PAGE BACKLINK INTELLIGENCE SUITE SECTION ── -->
+    <div id="backlinkSuiteSection" class="pro-tool-section" style="display:none; padding: 40px 0;">
+        <div class="container">
+            <div class="tool-header" style="text-align: center; max-width: 680px; margin: 0 auto 30px;">
+                <span class="hero-badge" style="background: rgba(244,63,94,0.15); color: #fb7185; border: 1px solid rgba(244,63,94,0.3);">Pro Off-Page Intelligence</span>
+                <h2 style="font-size: 2.2rem; font-weight: 800; margin: 12px 0; color: #fff;">Backlink Intelligence Suite</h2>
+                <p style="color: #94a3b8; font-size: 1rem;">Real-time web crawler audit for referring domains, dofollow/nofollow ratio, anchor distribution, and toxic link risk scoring.</p>
+                
+                <div style="display: flex; gap: 12px; margin-top: 25px;">
+                    <input type="text" id="blDomain" class="keyword-input" placeholder="Enter domain or URL (e.g. example.com)" style="flex: 1;">
+                    <button class="launch-btn" onclick="runBacklinkAudit()" style="padding: 14px 28px; white-space: nowrap;">
+                        Audit Backlinks
+                    </button>
+                </div>
+            </div>
+
+            <div id="blResults" style="display: none;">
+                <!-- Dynamically populated by JS -->
             </div>
         </div>
     </div>
@@ -1040,6 +1066,6 @@
 
     <!-- Chart.js for Radar & Historical Progress Graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="/static/js/app.js?v=4.1.0"></script>
+    <script src="/static/js/app.js?v=5.0.0"></script>
 </body>
 </html>
