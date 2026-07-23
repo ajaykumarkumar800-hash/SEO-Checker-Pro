@@ -1678,8 +1678,18 @@ function saveToHistory(data) {
 
     try {
         let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+        const rawNewUrl = data.final_url || data.url || '';
+        const normNewUrl = rawNewUrl.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+
+        // Filter out existing record for the same website so each website appears once
+        history = history.filter(h => {
+            if (h.user_email !== user.email) return true;
+            const existingNorm = (h.url || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+            return existingNorm !== normNewUrl;
+        });
+
         history.unshift({
-            url: data.final_url || data.url,
+            url: rawNewUrl,
             score: data.overall_score,
             grade: data.grade,
             date: new Date().toISOString(),
@@ -2365,19 +2375,30 @@ function renderExecutiveDashboard() {
     const tbody = document.getElementById("dashProjectsTable");
 
     function renderDashboardList(history) {
-        if (countEl) countEl.textContent = history.length;
+        // Deduplicate history items by normalized website URL so 1 website = 1 project
+        const uniqueMap = new Map();
+        (history || []).forEach(item => {
+            const rawUrl = item.url || '';
+            const normKey = rawUrl.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+            if (normKey && !uniqueMap.has(normKey)) {
+                uniqueMap.set(normKey, item);
+            }
+        });
+        const uniqueHistory = Array.from(uniqueMap.values());
+
+        if (countEl) countEl.textContent = uniqueHistory.length;
         if (avgEl) {
-            if (history.length > 0) {
-                const sum = history.reduce((acc, item) => acc + (item.score || 0), 0);
-                avgEl.textContent = Math.round(sum / history.length) + "%";
+            if (uniqueHistory.length > 0) {
+                const sum = uniqueHistory.reduce((acc, item) => acc + (item.score || 0), 0);
+                avgEl.textContent = Math.round(sum / uniqueHistory.length) + "%";
             } else {
                 avgEl.textContent = "--";
             }
         }
 
         if (tbody) {
-            if (history.length > 0) {
-                tbody.innerHTML = history.map(p => `
+            if (uniqueHistory.length > 0) {
+                tbody.innerHTML = uniqueHistory.map(p => `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
                         <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
                         <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
@@ -2404,7 +2425,7 @@ function renderExecutiveDashboard() {
                 `;
             }
         }
-        loadHistoricalScoreGraph(history.length > 0 ? history[0].url : null);
+        loadHistoricalScoreGraph(uniqueHistory.length > 0 ? uniqueHistory[0].url : null);
     }
 
     if (!user) {
@@ -2446,10 +2467,14 @@ function deleteProject(targetUrl) {
         return;
     }
 
-    // 1. Remove from local storage
+    // 1. Remove from local storage with normalized URL comparison
+    const normTarget = targetUrl.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
     try {
         let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
-        history = history.filter(h => h.url !== targetUrl);
+        history = history.filter(h => {
+            const hNorm = (h.url || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+            return hNorm !== normTarget;
+        });
         localStorage.setItem("seo_scan_history", JSON.stringify(history));
     } catch(e) {}
 

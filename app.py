@@ -8,6 +8,7 @@ import time
 import datetime
 import hashlib
 import requests
+import re
 
 # Try to load local environment variables from .env if present
 if os.path.exists(".env"):
@@ -573,8 +574,18 @@ def analyze():
         if user_email:
             if user_email not in LOCAL_USER_AUDITS:
                 LOCAL_USER_AUDITS[user_email] = []
+            
+            raw_new_url = report.get("final_url") or report.get("url") or ""
+            norm_new_url = re.sub(r"^www\.", "", re.sub(r"^https?://", "", raw_new_url.strip().lower())).rstrip("/")
+
+            # Remove previous audit entries for the same website so only the latest remains in local list
+            LOCAL_USER_AUDITS[user_email] = [
+                item for item in LOCAL_USER_AUDITS[user_email]
+                if re.sub(r"^www\.", "", re.sub(r"^https?://", "", (item.get("url") or "").strip().lower())).rstrip("/") != norm_new_url
+            ]
+
             LOCAL_USER_AUDITS[user_email].insert(0, {
-                "url": report.get("final_url") or report.get("url"),
+                "url": raw_new_url,
                 "score": report.get("overall_score", 0),
                 "grade": report.get("grade", "F"),
                 "date": now_utc.strftime("%d %b %Y"),
@@ -848,7 +859,7 @@ def login_user():
 
 @app.route("/api/user-history", methods=["POST"])
 def get_user_history():
-    """Fetch user-scoped audit history (strictly isolated per user)."""
+    """Fetch user-scoped audit history (deduplicated per website for executive dashboard projects)."""
     data = request.get_json() if request.is_json else {}
     user_email = (data.get("email") or "").strip().lower()
 
@@ -856,19 +867,28 @@ def get_user_history():
         return jsonify({"success": True, "history": []})
 
     history = []
+    seen_urls = set()
     global reports_collection
     if reports_collection is not None:
         try:
             cursor = reports_collection.find(
                 {"user_email": user_email},
                 {"_id": 0, "url": 1, "final_url": 1, "overall_score": 1, "grade": 1, "timestamp": 1}
-            ).sort("timestamp", -1).limit(25)
+            ).sort("timestamp", -1).limit(100)
 
             for doc in cursor:
+                raw_url = doc.get("final_url") or doc.get("url") or ""
+                if not raw_url:
+                    continue
+                norm_key = re.sub(r"^www\.", "", re.sub(r"^https?://", "", raw_url.strip().lower())).rstrip("/")
+                if not norm_key or norm_key in seen_urls:
+                    continue
+                seen_urls.add(norm_key)
+
                 ts = doc.get("timestamp")
                 dt_str = ts.strftime("%d %b %Y") if isinstance(ts, datetime.datetime) else "Recent"
                 history.append({
-                    "url": doc.get("final_url") or doc.get("url"),
+                    "url": raw_url,
                     "score": doc.get("overall_score", 0),
                     "grade": doc.get("grade", "F"),
                     "date": dt_str,
@@ -877,10 +897,16 @@ def get_user_history():
         except Exception as e:
             safe_log(f"MongoDB user history lookup error: {str(e)}")
 
-    if not history and user_email in LOCAL_USER_AUDITS:
-        history = LOCAL_USER_AUDITS[user_email]
+    if user_email in LOCAL_USER_AUDITS:
+        for item in LOCAL_USER_AUDITS[user_email]:
+            raw_url = item.get("url", "")
+            norm_key = re.sub(r"^www\.", "", re.sub(r"^https?://", "", raw_url.strip().lower())).rstrip("/")
+            if norm_key and norm_key not in seen_urls:
+                seen_urls.add(norm_key)
+                history.append(item)
 
     return jsonify({"success": True, "history": history})
+
 
 
 @app.route("/api/delete-project", methods=["POST"])
