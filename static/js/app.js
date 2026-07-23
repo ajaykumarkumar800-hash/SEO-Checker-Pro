@@ -3568,7 +3568,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
 function runBacklinkAudit() {
     const domainInput = document.getElementById("blDomain");
-    const domain = domainInput ? domainInput.value.trim() : "";
+    const domain = domainInput ? domainInput.value.trim().replace(/^['"`]+|['"`]+$/g, '') : "";
     if (!domain) {
         alert("Please enter a domain or website URL to audit backlinks.");
         if (domainInput) domainInput.focus();
