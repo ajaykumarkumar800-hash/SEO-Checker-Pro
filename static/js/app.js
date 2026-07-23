@@ -3432,7 +3432,7 @@ function updateAuthUI() {
         }
         if (userBox) {
             userBox.innerHTML = `
-                <div style="background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(99, 102, 241, 0.25); border-radius: 14px; padding: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);">
+                <div style="background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.7)); border: 1px solid rgba(129, 140, 248, 0.25); border-radius: 14px; padding: 14px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);">
                     <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
                         <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #6366f1, #8b5cf6); color:#fff; font-weight:800; font-size:0.85rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 12px rgba(99,102,241,0.35);">
                             ${initials}
@@ -3446,7 +3446,7 @@ function updateAuthUI() {
                         <span style="font-size:0.7rem; color:#34d399; font-weight:800; display:inline-flex; align-items:center; gap:5px; background:rgba(52,211,153,0.12); padding:3px 8px; border-radius:12px; border:1px solid rgba(52,211,153,0.25);">
                             <span style="width:6px; height:6px; border-radius:50%; background:#34d399; display:inline-block; box-shadow:0 0 8px #34d399;"></span> Pro Active
                         </span>
-                        <button onclick="handleLogout()" class="logout-btn-premium" style="font-size:0.75rem !important; padding:5px 12px !important;">
+                        <button onclick="handleLogout()" class="logout-btn-premium">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Logout
                         </button>
                     </div>

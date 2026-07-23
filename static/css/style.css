@@ -519,11 +519,6 @@ td {
     }
 }
 
-@keyframes logoutBtnPulse {
-    0%, 100% { box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25); }
-    50% { box-shadow: 0 4px 22px rgba(239, 68, 68, 0.5); }
-}
-
 /* Premium Card & Element Micro-Animations */
 .cat-card, .check-card, .rec-detail-card, .score-overview, .pro-tool-card {
     animation: fadeSlideUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -553,33 +548,45 @@ td {
     box-shadow: 0 4px 15px rgba(99, 102, 241, 0.2) !important;
 }
 
-/* Premium Logout Button Styling */
+@keyframes logoutBtnGlow {
+    0%, 100% { box-shadow: 0 4px 16px rgba(244, 63, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12); border-color: rgba(244, 63, 94, 0.35); }
+    50% { box-shadow: 0 4px 24px rgba(244, 63, 94, 0.35), 0 0 14px rgba(192, 38, 211, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.2); border-color: rgba(244, 63, 94, 0.55); }
+}
+
+/* Premium Logout Button Styling — Ultra High-End Glassmorphic */
 .logout-btn-premium {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.3)) !important;
-    border: 1px solid rgba(239, 68, 68, 0.45) !important;
-    color: #fca5a5 !important;
+    background: linear-gradient(135deg, rgba(244, 63, 94, 0.14) 0%, rgba(192, 38, 211, 0.14) 100%) !important;
+    border: 1px solid rgba(244, 63, 94, 0.38) !important;
+    color: #fecdd3 !important;
+    font-family: var(--font-heading) !important;
     font-weight: 700 !important;
-    padding: 8px 16px !important;
-    border-radius: 10px !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.02em !important;
+    padding: 7px 16px !important;
+    border-radius: 100px !important;
     cursor: pointer !important;
     display: inline-flex !important;
     align-items: center !important;
+    justify-content: center !important;
     gap: 6px !important;
-    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.25) !important;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
-    animation: logoutBtnPulse 3s infinite ease-in-out;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    box-shadow: 0 4px 16px rgba(244, 63, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+    transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    animation: logoutBtnGlow 4s infinite ease-in-out !important;
 }
 
 .logout-btn-premium:hover {
-    background: linear-gradient(135deg, #ef4444, #dc2626) !important;
+    background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #c026d3 100%) !important;
     color: #ffffff !important;
-    transform: translateY(-2px) scale(1.03) !important;
-    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.5) !important;
-    border-color: rgba(255, 255, 255, 0.3) !important;
+    border-color: rgba(255, 255, 255, 0.45) !important;
+    transform: translateY(-2px) scale(1.04) !important;
+    box-shadow: 0 8px 25px rgba(244, 63, 94, 0.45), 0 0 18px rgba(192, 38, 211, 0.35) !important;
 }
 
 .logout-btn-premium:active {
-    transform: scale(0.97) !important;
+    transform: translateY(0) scale(0.97) !important;
+    box-shadow: 0 2px 10px rgba(244, 63, 94, 0.3) !important;
 }
 
 /* ── FOOTER ── */
