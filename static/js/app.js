@@ -2310,7 +2310,11 @@ function saveUpdatedReportToHistory() {
     try {
         let history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
         const targetUrl = currentReport.final_url || currentReport.url;
-        const index = history.findIndex(h => h.url === targetUrl && h.user_email === user.email);
+        const normTarget = (targetUrl || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+        const index = history.findIndex(h => {
+            const hNorm = (h.url || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/+$/, '');
+            return hNorm === normTarget && h.user_email === user.email;
+        });
         if (index !== -1) {
             history[index].score = currentReport.overall_score;
             history[index].grade = currentReport.grade;
@@ -2837,10 +2841,10 @@ let activeGraphUrl = null;
 function switchHistoryRange(days) {
     currentHistoryDays = days;
 
-    // Update button active states
+    // Update button active states with premium gradient
     document.querySelectorAll(".hist-range-btn").forEach(btn => {
         if (parseInt(btn.getAttribute("data-days")) === days) {
-            btn.style.background = "#6366f1";
+            btn.style.background = "linear-gradient(135deg, #6366f1, #8b5cf6)";
             btn.style.color = "#fff";
         } else {
             btn.style.background = "transparent";
@@ -2901,18 +2905,84 @@ function renderHistoryChart(data) {
         }
     });
 
+    // Update premium KPI summary cards
+    const kpiInitial = document.getElementById("histKpiInitial");
+    const kpiCurrent = document.getElementById("histKpiCurrent");
+    const kpiPeak = document.getElementById("histKpiPeak");
+    const kpiAvg = document.getElementById("histKpiAvg");
+    if (kpiInitial) kpiInitial.textContent = (data.initial_score != null ? data.initial_score + '%' : '--');
+    if (kpiCurrent) kpiCurrent.textContent = (data.current_score != null ? data.current_score + '%' : '--');
+    if (kpiPeak) kpiPeak.textContent = (data.peak_score != null ? data.peak_score + '%' : '--');
+    if (kpiAvg) kpiAvg.textContent = (data.avg_score != null ? data.avg_score + '%' : '--');
+
+    // Update real scan info footer
+    const scanInfo = document.getElementById("histRealScanInfo");
+    if (scanInfo) {
+        const realCount = data.real_scan_count || 0;
+        const totalCount = data.total_scans || 0;
+        scanInfo.innerHTML = `<span style="color: #818cf8;">●</span> ${realCount} real scan${realCount !== 1 ? 's' : ''} · ${totalCount} data points tracked`;
+    }
+
     const labels = data.history.map(h => h.date);
     const scores = data.history.map(h => h.score);
+    const isRealScan = data.history.map(h => h.is_real_scan || false);
+    const grades = data.history.map(h => h.grade || '');
 
     if (typeof Chart === "undefined") return;
 
-    // 1. Render on #historyChart
+    // Chart.js custom plugin for score zone background bands
+    const zonePlugin = {
+        id: 'scoreZoneBands',
+        beforeDraw(chart) {
+            const { ctx, chartArea: { left, right, top, bottom }, scales: { y } } = chart;
+            if (!y) return;
+            const zones = [
+                { min: 80, max: 100, color: 'rgba(52, 211, 153, 0.04)' },
+                { min: 60, max: 80,  color: 'rgba(251, 191, 36, 0.03)' },
+                { min: 0,  max: 60,  color: 'rgba(248, 113, 113, 0.03)' }
+            ];
+            zones.forEach(zone => {
+                const yTop = y.getPixelForValue(zone.max);
+                const yBot = y.getPixelForValue(zone.min);
+                ctx.save();
+                ctx.fillStyle = zone.color;
+                ctx.fillRect(left, yTop, right - left, yBot - yTop);
+                ctx.restore();
+            });
+            // Draw 80% benchmark dashed line
+            const y80 = y.getPixelForValue(80);
+            ctx.save();
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.25)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(left, y80);
+            ctx.lineTo(right, y80);
+            ctx.stroke();
+            ctx.restore();
+            // Label for benchmark
+            ctx.save();
+            ctx.fillStyle = 'rgba(52, 211, 153, 0.4)';
+            ctx.font = '600 9px Inter, sans-serif';
+            ctx.fillText('TARGET 80%', right - 62, y80 - 4);
+            ctx.restore();
+        }
+    };
+
+    // Compute score changes between consecutive points
+    const changes = scores.map((s, i) => {
+        if (i === 0) return 0;
+        return s - scores[i - 1];
+    });
+
+    // 1. Render on #historyChart (Site Audit results page)
     const canvas1 = document.getElementById("historyChart");
     if (canvas1) {
         if (historyChartInstance) historyChartInstance.destroy();
         const ctx1 = canvas1.getContext("2d");
         const gradient1 = ctx1.createLinearGradient(0, 0, 0, 260);
         gradient1.addColorStop(0, "rgba(52, 211, 153, 0.4)");
+        gradient1.addColorStop(0.5, "rgba(52, 211, 153, 0.15)");
         gradient1.addColorStop(1, "rgba(52, 211, 153, 0.0)");
 
         historyChartInstance = new Chart(ctx1, {
@@ -2926,9 +2996,9 @@ function renderHistoryChart(data) {
                     borderWidth: 3,
                     backgroundColor: gradient1,
                     fill: true,
-                    tension: 0.35,
+                    tension: 0.4,
                     pointRadius: scores.length > 30 ? 2 : 6,
-                    pointHoverRadius: 8,
+                    pointHoverRadius: 9,
                     pointBackgroundColor: "#34d399",
                     pointBorderColor: "#ffffff",
                     pointBorderWidth: scores.length > 30 ? 1 : 2
@@ -2966,61 +3036,141 @@ function renderHistoryChart(data) {
         });
     }
 
-    // 2. Render on #dashHistoryChart
+    // 2. Render on #dashHistoryChart (Executive Dashboard — Premium)
     const canvas2 = document.getElementById("dashHistoryChart");
     if (canvas2) {
         if (dashHistoryChartInstance) dashHistoryChartInstance.destroy();
         const ctx2 = canvas2.getContext("2d");
-        const gradient2 = ctx2.createLinearGradient(0, 0, 0, 260);
-        gradient2.addColorStop(0, "rgba(99, 102, 241, 0.4)");
-        gradient2.addColorStop(1, "rgba(99, 102, 241, 0.0)");
+
+        // Premium dual-gradient fill
+        const gradientMain = ctx2.createLinearGradient(0, 0, 0, 340);
+        gradientMain.addColorStop(0, "rgba(129, 140, 248, 0.35)");
+        gradientMain.addColorStop(0.4, "rgba(99, 102, 241, 0.15)");
+        gradientMain.addColorStop(0.8, "rgba(139, 92, 246, 0.05)");
+        gradientMain.addColorStop(1, "rgba(139, 92, 246, 0.0)");
+
+        // Generate point colors and styles based on real vs projected
+        const pointBgColors = isRealScan.map(r => r ? '#818cf8' : 'rgba(129,140,248,0.3)');
+        const pointBorderColors = isRealScan.map(r => r ? '#ffffff' : 'rgba(129,140,248,0.6)');
+        const pointRadii = isRealScan.map(r => r ? 7 : 4);
+        const pointStyles = isRealScan.map(r => r ? 'circle' : 'rectRot');
+        const pointBorderWidths = isRealScan.map(r => r ? 3 : 2);
+
+        // Target benchmark line at 80% (flat)
+        const targetLine = scores.map(() => 80);
 
         dashHistoryChartInstance = new Chart(ctx2, {
             type: "line",
+            plugins: [zonePlugin],
             data: {
                 labels: labels,
-                datasets: [{
-                    label: "Operations Score Trend",
-                    data: scores,
-                    borderColor: "#818cf8",
-                    borderWidth: 3,
-                    backgroundColor: gradient2,
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: scores.length > 30 ? 2 : 6,
-                    pointHoverRadius: 8,
-                    pointBackgroundColor: "#818cf8",
-                    pointBorderColor: "#ffffff",
-                    pointBorderWidth: scores.length > 30 ? 1 : 2
-                }]
+                datasets: [
+                    {
+                        label: "SEO Score",
+                        data: scores,
+                        borderColor: "#818cf8",
+                        borderWidth: 3,
+                        backgroundColor: gradientMain,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: pointRadii,
+                        pointHoverRadius: 10,
+                        pointBackgroundColor: pointBgColors,
+                        pointBorderColor: pointBorderColors,
+                        pointBorderWidth: pointBorderWidths,
+                        pointStyle: pointStyles,
+                        pointHitRadius: 12
+                    },
+                    {
+                        label: "Target (80%)",
+                        data: targetLine,
+                        borderColor: "rgba(52, 211, 153, 0.0)",
+                        borderWidth: 0,
+                        backgroundColor: "transparent",
+                        fill: false,
+                        pointRadius: 0,
+                        pointHoverRadius: 0,
+                        tension: 0
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 plugins: {
                     legend: { display: false },
                     tooltip: {
-                        backgroundColor: "rgba(15, 23, 42, 0.95)",
-                        titleColor: "#ffffff",
-                        bodyColor: "#818cf8",
-                        padding: 12,
+                        backgroundColor: "rgba(15, 23, 42, 0.96)",
+                        titleColor: "#e2e8f0",
+                        titleFont: { weight: '700', size: 13 },
+                        bodyColor: "#cbd5e1",
+                        bodyFont: { weight: '600', size: 12 },
+                        padding: { top: 12, bottom: 12, left: 16, right: 16 },
+                        cornerRadius: 12,
+                        borderColor: 'rgba(129, 140, 248, 0.3)',
+                        borderWidth: 1,
                         displayColors: false,
+                        filter: function(tooltipItem) {
+                            return tooltipItem.datasetIndex === 0;
+                        },
                         callbacks: {
-                            label: function(ctx) { return `Operations Score: ${ctx.parsed.y}%`; }
+                            title: function(items) {
+                                if (!items.length) return '';
+                                const idx = items[0].dataIndex;
+                                const dateStr = labels[idx] || '';
+                                const scanType = isRealScan[idx] ? '● Real Scan' : '◇ Projected';
+                                return `${dateStr}  ·  ${scanType}`;
+                            },
+                            label: function(ctx) {
+                                const idx = ctx.dataIndex;
+                                const score = scores[idx];
+                                const grade = grades[idx];
+                                const change = changes[idx];
+                                const changeStr = change > 0 ? `+${change}` : `${change}`;
+                                const changeColor = change >= 0 ? '▲' : '▼';
+                                return [
+                                    `Score: ${score}%  ·  Grade: ${grade}`,
+                                    `Change: ${changeColor} ${changeStr}%`
+                                ];
+                            }
                         }
                     }
                 },
                 scales: {
                     x: {
-                        grid: { color: "rgba(255, 255, 255, 0.08)" },
+                        grid: {
+                            color: "rgba(255, 255, 255, 0.04)",
+                            drawBorder: false
+                        },
                         ticks: {
-                            color: "#cbd5e1",
-                            font: { weight: '600' },
-                            maxTicksLimit: scores.length > 60 ? 12 : (scores.length > 20 ? 10 : undefined),
-                            maxRotation: 45
+                            color: "#64748b",
+                            font: { weight: '600', size: 11 },
+                            maxTicksLimit: scores.length > 60 ? 10 : (scores.length > 20 ? 8 : undefined),
+                            maxRotation: 40
                         }
                     },
-                    y: { min: 0, max: 100, grid: { color: "rgba(255, 255, 255, 0.08)" }, ticks: { color: "#cbd5e1", stepSize: 20, font: { weight: '600' } } }
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: "rgba(255, 255, 255, 0.05)",
+                            drawBorder: false
+                        },
+                        ticks: {
+                            color: "#64748b",
+                            stepSize: 20,
+                            font: { weight: '700', size: 11 },
+                            callback: function(value) { return value + '%'; }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 1200,
+                    easing: 'easeOutQuart'
                 }
             }
         });

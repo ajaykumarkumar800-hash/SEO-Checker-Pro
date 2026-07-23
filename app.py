@@ -376,8 +376,6 @@ def index():
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     """Run SEO analysis on the provided URL with Instant Database Caching."""
-    import time
-    import datetime
     global client, db, reports_collection
 
     data = request.get_json()
@@ -407,12 +405,12 @@ def analyze():
 
     # Check 1: Return Instant Cached Audit Result if not force_refresh
     if not force_refresh:
-        global reports_collection
         if reports_collection is not None:
             try:
                 cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(seconds=cache_ttl)
+                escaped_url = re.escape(norm_url)
                 cached_doc = reports_collection.find_one(
-                    {"url": {"$regex": f"^{norm_url}", "$options": "i"}, "timestamp": {"$gte": cutoff}},
+                    {"url": {"$regex": f"^{escaped_url}", "$options": "i"}, "timestamp": {"$gte": cutoff}},
                     sort=[("timestamp", -1)]
                 )
                 if cached_doc:
@@ -657,10 +655,11 @@ def score_history():
     if reports_collection is not None:
         try:
             cutoff = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=days)
+            escaped_domain = re.escape(clean_domain)
             cursor = reports_collection.find({
                 "$or": [
-                    {"url": {"$regex": clean_domain, "$options": "i"}},
-                    {"final_url": {"$regex": clean_domain, "$options": "i"}}
+                    {"url": {"$regex": escaped_domain, "$options": "i"}},
+                    {"final_url": {"$regex": escaped_domain, "$options": "i"}}
                 ],
                 "timestamp": {"$gte": cutoff}
             }, {"timestamp": 1, "overall_score": 1, "grade": 1}).sort("timestamp", 1)
@@ -731,8 +730,9 @@ def score_history():
     for dt in sample_dates:
         d_key = dt.strftime("%Y-%m-%d")
         lbl = dt.strftime("%d %b") if days <= 30 else dt.strftime("%d %b %Y")
-        
-        if d_key in daily_scores:
+        is_real = d_key in daily_scores
+
+        if is_real:
             sc = daily_scores[d_key]
         else:
             progress_ratio = max(0.0, min(1.0, (dt - t_start).total_seconds() / total_time_span))
@@ -740,16 +740,22 @@ def score_history():
             sc = round(base_start_score + (total_window_growth * progress_ratio))
             sc = max(20, min(100, sc))
 
-        grade = "A" if sc >= 80 else ("B" if sc >= 70 else "C")
+        grade = "A+" if sc >= 90 else ("A" if sc >= 80 else ("B" if sc >= 70 else ("C" if sc >= 60 else ("D" if sc >= 40 else "F"))))
         history.append({
             "date": lbl,
             "timestamp": dt.isoformat(),
             "score": sc,
-            "grade": grade
+            "grade": grade,
+            "is_real_scan": is_real
         })
 
+    all_scores = [h["score"] for h in history] if history else [0]
     first_score = history[0]["score"] if history else 0
     last_score = history[-1]["score"] if history else 0
+    peak_score = max(all_scores)
+    lowest_score = min(all_scores)
+    avg_score = round(sum(all_scores) / len(all_scores))
+    real_scan_count = sum(1 for h in history if h.get("is_real_scan"))
     diff = last_score - first_score
     diff_str = f"+{diff}%" if diff >= 0 else f"{diff}%"
 
@@ -762,14 +768,16 @@ def score_history():
         "range_label": range_labels.get(days, f"{days}-Day"),
         "history": history,
         "total_scans": len(history),
+        "real_scan_count": real_scan_count,
         "score_improvement": diff_str,
         "initial_score": first_score,
-        "current_score": last_score
+        "current_score": last_score,
+        "peak_score": peak_score,
+        "lowest_score": lowest_score,
+        "avg_score": avg_score
     })
 
-users_collection = None
 
-import hashlib
 
 def hash_password(password):
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
@@ -928,7 +936,7 @@ def delete_project():
                 "$or": [
                     {"url": target_url},
                     {"final_url": target_url},
-                    {"url": {"$regex": f"^{target_url.rstrip('/')}", "$options": "i"}}
+                    {"url": {"$regex": f"^{re.escape(target_url.rstrip('/'))}", "$options": "i"}}
                 ]
             })
             deleted_count = res.deleted_count
