@@ -31,6 +31,15 @@
           "value": "0"
         }
       ]
+    },
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate, private, max-age=0"
+        }
+      ]
     }
   ]
 }
