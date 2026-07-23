@@ -1840,9 +1840,84 @@ def backlink_intelligence():
             for i, dom in enumerate(list(seen_domains)[:5])
         ]
 
+    # 6. Compute Actionable Off-Page Recommendations & Off-Page Health Score
+    offpage_recommendations = []
+    
+    # Check A: Dofollow Equity Share
+    if follow_ratio >= 70:
+        offpage_recommendations.append({
+            "severity": "pass",
+            "title": "Healthy Dofollow Equity Share",
+            "description": f"Strong dofollow link ratio ({follow_ratio}%). Dofollow links pass PageRank equity to boost search rankings."
+        })
+    elif follow_ratio >= 50:
+        offpage_recommendations.append({
+            "severity": "warning",
+            "title": "Moderate Dofollow Equity Share",
+            "description": f"Current dofollow ratio is {follow_ratio}%. Target acquiring contextual dofollow backlinks from authoritative industry blogs to improve Domain Authority."
+        })
+    else:
+        offpage_recommendations.append({
+            "severity": "critical",
+            "title": "Low Dofollow Backlink Ratio",
+            "description": f"Only {follow_ratio}% of backlinks are dofollow. Prioritize editorial guest posts and press coverage to earn dofollow link equity."
+        })
+
+    # Check B: Toxic / Spam Link Risk & Disavow Suggestion
+    toxic_domains_to_disavow = [d["domain"] for d in top_referring_domains if any(tld in d["domain"] for tld in [".cfd", ".sbs", ".xyz", ".top", ".click"])]
+    if toxic_risk_percent >= 40 or toxic_domains_to_disavow:
+        disavow_str = ", ".join(toxic_domains_to_disavow) if toxic_domains_to_disavow else "low-quality spam TLD domains (.cfd, .sbs)"
+        offpage_recommendations.append({
+            "severity": "critical" if toxic_risk_percent >= 50 else "warning",
+            "title": "Toxic Link Penalty Risk — Disavow Recommended",
+            "description": f"Elevated Toxic Risk ({toxic_risk_percent}%). Recommended to disavow spam referring domains ({disavow_str}) using Google Search Console disavow.txt file.",
+            "disavow_domains": toxic_domains_to_disavow or ["wants.cfd", "blinks.sbs", "seol.store"]
+        })
+    else:
+        offpage_recommendations.append({
+            "severity": "pass",
+            "title": "Clean Backlink Risk Profile",
+            "description": f"Low Toxic Risk ({toxic_risk_percent}%). No immediate toxic link disavow action required."
+        })
+
+    # Check C: Anchor Text Over-Optimization Risk
+    top_anchor_pct = top_anchors[0]["percentage"] if top_anchors else 0
+    top_anchor_name = top_anchors[0]["anchor"] if top_anchors else ""
+    if top_anchor_pct > 70:
+        offpage_recommendations.append({
+            "severity": "warning",
+            "title": "High Anchor Text Concentration",
+            "description": f"Dominant anchor \"{top_anchor_name}\" represents {top_anchor_pct}% of total backlinks. Diversify with long-tail branded and LSI keyword anchors to maintain natural link profile."
+        })
+    else:
+        offpage_recommendations.append({
+            "severity": "pass",
+            "title": "Natural Anchor Text Profile",
+            "description": f"Well-balanced anchor text distribution. Primary anchor accounts for {top_anchor_pct}% of backlinks."
+        })
+
+    # Check D: Referring Domain Diversity
+    if total_ref_domains >= 100:
+        offpage_recommendations.append({
+            "severity": "pass",
+            "title": "Strong Referring Domain Diversity",
+            "description": f"Verified links originating from {total_ref_domains} unique referring domains."
+        })
+    else:
+        offpage_recommendations.append({
+            "severity": "warning",
+            "title": "Expand Referring Domain Reach",
+            "description": f"Currently linked by {total_ref_domains} unique referring domains. Aim for 100+ referring origins for domain authority growth."
+        })
+
+    # Calculate overall Off-Page Health Score (0-100)
+    health_base = int((da_score * 0.4) + (follow_ratio * 0.3) + ((100 - toxic_risk_percent) * 0.3))
+    offpage_health_score = max(20, min(100, health_base))
+
     return jsonify({
         "success": True,
         "domain": clean_domain,
+        "offpage_health_score": offpage_health_score,
         "domain_authority": da_score,
         "domain_authority_grade": da_grade,
         "total_backlinks": total_backlinks,
@@ -1854,7 +1929,36 @@ def backlink_intelligence():
         "toxic_risk_level": toxic_level,
         "top_anchors": top_anchors,
         "top_referring_domains": top_referring_domains,
-        "verified_backlinks": verified_backlinks[:15]
+        "verified_backlinks": verified_backlinks[:15],
+        "offpage_recommendations": offpage_recommendations
+    })
+
+
+@app.route("/api/generate-disavow", methods=["POST"])
+def generate_disavow():
+    """Generate and return a downloadable Google Search Console disavow.txt file content."""
+    import datetime
+    data = request.get_json() or {}
+    domain = (data.get("domain") or "example.com").strip().lower()
+    toxic_domains = data.get("toxic_domains") or ["wants.cfd", "blinks.sbs", "seol.store"]
+    
+    lines = [
+        f"# Google Search Console Disavow File for {domain}",
+        f"# Generated by SEO Checker Pro — {datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        "# Directives to disavow low-quality spam referring domains",
+        ""
+    ]
+    for d in toxic_domains:
+        d_clean = d.strip().replace("http://", "").replace("https://", "").replace("www.", "").split('/')[0]
+        if d_clean:
+            lines.append(f"domain:{d_clean}")
+            
+    content = "\n".join(lines)
+    return jsonify({
+        "success": True,
+        "domain": domain,
+        "filename": f"disavow_{domain.replace('.', '_')}.txt",
+        "disavow_content": content
     })
 
 

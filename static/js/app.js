@@ -3663,6 +3663,35 @@ function renderBacklinkResults(data) {
         `;
     }
 
+    let recsHtml = (data.offpage_recommendations || []).map(r => {
+        const badgeColor = r.severity === 'critical' ? '#f87171' : (r.severity === 'warning' ? '#fbbf24' : '#34d399');
+        const badgeBg = r.severity === 'critical' ? 'rgba(248,113,113,0.15)' : (r.severity === 'warning' ? 'rgba(251,191,36,0.15)' : 'rgba(52,211,153,0.15)');
+        const badgeText = r.severity === 'critical' ? 'CRITICAL ACTION' : (r.severity === 'warning' ? 'WARNING' : 'PASSED');
+        
+        let disavowBtn = '';
+        if (r.disavow_domains && r.disavow_domains.length) {
+            const domainsArr = JSON.stringify(r.disavow_domains).replace(/"/g, '&quot;');
+            disavowBtn = `
+                <div style="margin-top: 10px;">
+                    <button onclick="downloadDisavowFile('${esc(data.domain)}', ${domainsArr})" style="background: linear-gradient(135deg, #ef4444, #dc2626); border: none; color: #ffffff; padding: 7px 16px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(239,68,68,0.3);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download disavow.txt File
+                    </button>
+                </div>
+            `;
+        }
+
+        return `
+            <div style="background: rgba(15,23,42,0.6); border-left: 4px solid ${badgeColor}; border: 1px solid rgba(255,255,255,0.08); border-left-width: 4px; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 800; color: #ffffff; font-size: 0.95rem;">${esc(r.title)}</span>
+                    <span style="padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 800; background: ${badgeBg}; color: ${badgeColor};">${badgeText}</span>
+                </div>
+                <p style="font-size: 0.84rem; color: #cbd5e1; margin: 0; line-height: 1.5;">${esc(r.description)}</p>
+                ${disavowBtn}
+            </div>
+        `;
+    }).join('');
+
     let refDomainsRows = (data.top_referring_domains || []).map(d => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
             <td style="padding: 12px; font-weight: 700; color: #ffffff;">
@@ -3716,6 +3745,15 @@ function renderBacklinkResults(data) {
                 <div style="font-size: 2.2rem; font-weight: 800; color: ${toxicBadgeColor}; margin: 4px 0;">${data.toxic_risk_percent}%</div>
                 <div style="font-size: 0.78rem; color: ${toxicBadgeColor}; font-weight: 700;">${data.toxic_risk_level} Risk Profile</div>
             </div>
+        </div>
+
+        <!-- Actionable Off-Page Audit Recommendations Card -->
+        <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff;">Actionable Off-Page Audit Recommendations</h3>
+                <span style="font-size: 0.82rem; color: #a5b4fc; font-weight: 700;">Optimization Guidance</span>
+            </div>
+            ${recsHtml}
         </div>
 
         <!-- Follow vs Nofollow Ratio & Anchor Text Breakdown -->
@@ -3795,6 +3833,29 @@ function renderBacklinkResults(data) {
             </div>
         </div>
     `;
+}
+
+function downloadDisavowFile(domain, toxicDomains) {
+    fetch("/api/generate-disavow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ domain: domain, toxic_domains: toxicDomains })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success && res.disavow_content) {
+            const blob = new Blob([res.disavow_content], { type: "text/plain;charset=utf-8" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = res.filename || "disavow.txt";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        } else {
+            alert("Failed to generate disavow file.");
+        }
+    })
+    .catch(err => alert("Disavow generation error: " + err.message));
 }
 
 
