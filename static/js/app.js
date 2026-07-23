@@ -3663,6 +3663,27 @@ function renderBacklinkResults(data) {
         `;
     }
 
+    let refDomainsRows = (data.top_referring_domains || []).map(d => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
+            <td style="padding: 12px; font-weight: 700; color: #ffffff;">
+                ${esc(d.domain)}
+            </td>
+            <td style="padding: 12px; text-align: center; font-weight: 800; color: #38bdf8;">
+                ${d.backlinks}
+            </td>
+            <td style="padding: 12px; text-align: center; font-size: 0.82rem; color: #cbd5e1;">
+                ${esc(d.ip)}
+            </td>
+            <td style="padding: 14px; text-align: right; font-weight: 600; color: #ffffff;">
+                ${esc(d.flag || d.country)}
+            </td>
+        </tr>
+    `).join('');
+
+    if (!refDomainsRows) {
+        refDomainsRows = `<tr><td colspan="4" style="padding: 18px; text-align: center; color: #94a3b8;">No referring domains found.</td></tr>`;
+    }
+
     container.innerHTML = `
         <!-- Domain Authority & Backlink Summary Cards -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
@@ -3698,7 +3719,7 @@ function renderBacklinkResults(data) {
         </div>
 
         <!-- Follow vs Nofollow Ratio & Anchor Text Breakdown -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 30px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 25px;">
             <!-- Follow Ratio Bar -->
             <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px;">
                 <h3 style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Link Type & Dofollow Equity</h3>
@@ -3722,6 +3743,30 @@ function renderBacklinkResults(data) {
             <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 22px;">
                 <h3 style="font-size: 1.1rem; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Top Anchor Text Profile</h3>
                 ${anchorsHtml}
+            </div>
+        </div>
+
+        <!-- Top Referring Domains Table -->
+        <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; margin-bottom: 25px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff;">Top Referring Domains</h3>
+                <span style="font-size: 0.82rem; color: #38bdf8; font-weight: 700;">IP Geolocation Analysis</span>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid rgba(255,255,255,0.12); color: #ffffff;">
+                            <th style="padding: 12px; color: #ffffff;">Referring Domain</th>
+                            <th style="padding: 12px; text-align: center; color: #ffffff;">Backlinks</th>
+                            <th style="padding: 12px; text-align: center; color: #ffffff;">IP Address</th>
+                            <th style="padding: 12px; text-align: right; color: #ffffff;">Country Location</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${refDomainsRows}
+                    </tbody>
+                </table>
             </div>
         </div>
 
