@@ -592,12 +592,16 @@
                 <p style="color: #94a3b8; font-size: 1rem;">Track organic Google search performance: total clicks, impressions, average CTR, and top keyword rankings.</p>
             </div>
 
-            <div class="search-box" style="max-width: 680px; margin: 0 auto 30px;">
+            <div class="search-box" style="max-width: 680px; margin: 0 auto 15px;">
                 <div class="search-icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                 </div>
                 <input type="text" id="gscSiteInput" class="search-input" placeholder="Enter target website URL (e.g., example.com)" autocomplete="off">
                 <button class="search-btn" onclick="runGSCPerformance()">Fetch Metrics</button>
+            </div>
+
+            <div style="max-width: 680px; margin: 0 auto 30px; display: flex; gap: 10px; align-items: center;">
+                <input type="password" id="gscTokenInput" class="keyword-input" placeholder="Google Search Console OAuth Access Token (Optional for 100% exact API sync)" style="font-size: 0.82rem; padding: 10px 14px;">
             </div>
 
             <div id="gscPerfResults" style="display: none;">

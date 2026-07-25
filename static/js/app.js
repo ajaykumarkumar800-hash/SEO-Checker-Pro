@@ -3970,7 +3970,10 @@ function downloadDisavowFile(domain, toxicDomains) {
 
 function runGSCPerformance() {
     const input = document.getElementById("gscSiteInput");
+    const tokenInput = document.getElementById("gscTokenInput");
     const siteUrl = input ? input.value.trim() : "";
+    const token = tokenInput ? tokenInput.value.trim() : "";
+    
     if (!siteUrl) {
         alert("Please enter a target website URL.");
         if (input) input.focus();
@@ -3984,14 +3987,14 @@ function runGSCPerformance() {
     container.innerHTML = `
         <div style="text-align:center; padding: 40px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
             <div style="width:30px; height:30px; border:3px solid rgba(56,189,248,0.2); border-top:3px solid #38bdf8; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px auto;"></div>
-            <p style="color: #cbd5e1; font-weight: 600;">Fetching real-time Google Search Console performance data for "${esc(siteUrl)}"...</p>
+            <p style="color: #cbd5e1; font-weight: 600;">Fetching live Google search performance & rank data for "${esc(siteUrl)}"...</p>
         </div>
     `;
 
     fetch("/api/gsc-performance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ site_url: siteUrl, days: 30 })
+        body: JSON.stringify({ site_url: siteUrl, access_token: token, days: 30 })
     })
     .then(r => r.json())
     .then(data => {
