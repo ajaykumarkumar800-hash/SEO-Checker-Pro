@@ -91,6 +91,10 @@
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     Backlink Intelligence
                 </button>
+                <button class="sidebar-btn pro-nav-btn" id="pnav-gsc-performance" onclick="switchProTool('gsc-performance')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                    Live Clicks & Impressions
+                </button>
 
                 <div class="sidebar-nav-label">Security & Preview</div>
                 <button class="sidebar-btn pro-nav-btn" id="pnav-security-audit" onclick="switchProTool('security-audit')">
@@ -574,6 +578,29 @@
             </div>
 
             <div id="blResults" style="display: none;">
+                <!-- Dynamically populated by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ── REAL-TIME GSC CLICKS & IMPRESSIONS SECTION ── -->
+    <div id="gscPerformanceSection" class="pro-tool-section" style="display:none; padding: 40px 0;">
+        <div class="container">
+            <div class="tool-header" style="text-align: center; max-width: 680px; margin: 0 auto 30px;">
+                <span class="hero-badge" style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3);">Google Search Analytics</span>
+                <h2 style="font-size: 2.2rem; font-weight: 800; margin: 12px 0; color: #fff;">Real-Time Clicks & Impressions</h2>
+                <p style="color: #94a3b8; font-size: 1rem;">Track organic Google search performance: total clicks, impressions, average CTR, and top keyword rankings.</p>
+            </div>
+
+            <div class="search-box" style="max-width: 680px; margin: 0 auto 30px;">
+                <div class="search-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <input type="text" id="gscSiteInput" class="search-input" placeholder="Enter target website URL (e.g., example.com)" autocomplete="off">
+                <button class="search-btn" onclick="runGSCPerformance()">Fetch Metrics</button>
+            </div>
+
+            <div id="gscPerfResults" style="display: none;">
                 <!-- Dynamically populated by JS -->
             </div>
         </div>

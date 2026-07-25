@@ -94,13 +94,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const enterInputs = [
         { id: "keywordInput", fn: () => startAnalysis() },
         { id: "kmInput", fn: () => runKeywordResearch() },
-        { id: "doDomain", fn: () => runDomainOverview() },
-        { id: "saUrl", fn: () => runSecurityAudit() },
+        { id: "doInput", fn: () => runDomainOverview() },
+        { id: "saInput", fn: () => runSecurityAudit() },
         { id: "cgDomain1", fn: () => runCompetitorCompare() },
         { id: "cgDomain2", fn: () => runCompetitorCompare() },
         { id: "rtDomain", fn: () => runRankTracker() },
         { id: "rtKeywords", fn: () => runRankTracker() },
-        { id: "blDomain", fn: () => runBacklinkAudit() }
+        { id: "blDomain", fn: () => runBacklinkAudit() },
+        { id: "gscSiteInput", fn: () => runGSCPerformance() }
     ];
 
     enterInputs.forEach(item => {
@@ -2372,6 +2373,8 @@ function switchProTool(toolId) {
         updateSerpPreview();
     } else if (toolId === 'backlink-suite') {
         document.getElementById('backlinkSuiteSection').style.display = '';
+    } else if (toolId === 'gsc-performance') {
+        document.getElementById('gscPerformanceSection').style.display = '';
     }
 }
 
@@ -3948,7 +3951,126 @@ function downloadDisavowFile(domain, toxicDomains) {
             alert("Failed to generate disavow file.");
         }
     })
+}
     .catch(err => alert("Disavow generation error: " + err.message));
+}
+
+/* ═══════════════════════════════════════════════
+   REAL-TIME GSC CLICKS & IMPRESSIONS SUITE HANDLER
+   ═══════════════════════════════════════════════ */
+
+function runGSCPerformance() {
+    const input = document.getElementById("gscSiteInput");
+    const siteUrl = input ? input.value.trim() : "";
+    if (!siteUrl) {
+        alert("Please enter a target website URL.");
+        if (input) input.focus();
+        return;
+    }
+
+    const container = document.getElementById("gscPerfResults");
+    if (!container) return;
+
+    container.style.display = "block";
+    container.innerHTML = `
+        <div style="text-align:center; padding: 40px; background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px;">
+            <div style="width:30px; height:30px; border:3px solid rgba(56,189,248,0.2); border-top:3px solid #38bdf8; border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 12px auto;"></div>
+            <p style="color: #cbd5e1; font-weight: 600;">Fetching real-time Google Search Console performance data for "${esc(siteUrl)}"...</p>
+        </div>
+    `;
+
+    fetch("/api/gsc-performance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ site_url: siteUrl, days: 30 })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            renderGSCPerformanceResults(data);
+        } else {
+            container.innerHTML = `<div style="color:#ef4444; padding:20px; background:var(--bg-card); border-radius:16px;">Error: ${esc(data.error || 'Failed to fetch GSC performance.')}</div>`;
+        }
+    })
+    .catch(err => {
+        container.innerHTML = `<div style="color:#ef4444; padding:20px; background:var(--bg-card); border-radius:16px;">Network error: ${esc(err.message)}</div>`;
+    });
+}
+
+function renderGSCPerformanceResults(data) {
+    const container = document.getElementById("gscPerfResults");
+    if (!container) return;
+
+    if (data.connected && data.top_queries) {
+        let rows = data.top_queries.map(q => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
+                <td style="padding: 12px; font-weight: 700; color: #ffffff;">${esc(q.query)}</td>
+                <td style="padding: 12px; text-align: center; color: #34d399; font-weight: 800;">${q.clicks.toLocaleString()}</td>
+                <td style="padding: 12px; text-align: center; color: #38bdf8; font-weight: 800;">${q.impressions.toLocaleString()}</td>
+                <td style="padding: 12px; text-align: center; color: #fbbf24; font-weight: 700;">${esc(q.ctr)}</td>
+                <td style="padding: 12px; text-align: right; color: #a5b4fc; font-weight: 800;">#${q.position}</td>
+            </tr>
+        `).join('');
+
+        container.innerHTML = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
+                <div style="background: var(--bg-card); border-left: 4px solid #34d399; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Clicks</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: #34d399; margin: 4px 0;">${data.total_clicks.toLocaleString()}</div>
+                    <div style="font-size: 0.78rem; color: #6ee7b7;">Last 30 Days</div>
+                </div>
+                <div style="background: var(--bg-card); border-left: 4px solid #38bdf8; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Impressions</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: #38bdf8; margin: 4px 0;">${data.total_impressions.toLocaleString()}</div>
+                    <div style="font-size: 0.78rem; color: #7dd3fc;">Search Visibility</div>
+                </div>
+                <div style="background: var(--bg-card); border-left: 4px solid #fbbf24; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average CTR</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: #fbbf24; margin: 4px 0;">${data.avg_ctr}</div>
+                    <div style="font-size: 0.78rem; color: #fde047;">Click-Through Rate</div>
+                </div>
+                <div style="background: var(--bg-card); border-left: 4px solid #a5b4fc; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average Position</div>
+                    <div style="font-size: 2.2rem; font-weight: 800; color: #a5b4fc; margin: 4px 0;">#${data.avg_position}</div>
+                    <div style="font-size: 0.78rem; color: #c7d2fe;">SERP Rank</div>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+                <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; margin-bottom: 16px;">Top Organic Search Queries</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+                        <thead>
+                            <tr style="border-bottom: 2px solid rgba(255,255,255,0.12); color: #94a3b8;">
+                                <th style="padding: 10px;">Search Query</th>
+                                <th style="padding: 10px; text-align: center;">Clicks</th>
+                                <th style="padding: 10px; text-align: center;">Impressions</th>
+                                <th style="padding: 10px; text-align: center;">CTR</th>
+                                <th style="padding: 10px; text-align: right;">Avg Position</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 30px; text-align: center;">
+                <div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(56,189,248,0.15); color: #38bdf8; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 16px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </div>
+                <h3 style="font-size: 1.3rem; font-weight: 700; color: #ffffff; margin-bottom: 8px;">Connect Google Search Console API</h3>
+                <p style="color: #cbd5e1; font-size: 0.92rem; max-width: 540px; margin: 0 auto 20px;">
+                    ${esc(data.message || 'Stream live 100% real-time clicks, impressions, CTR, and search positions directly from your Google Search Console account.')}
+                </p>
+                <div style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px; text-align: left; max-width: 540px; margin: 0 auto 20px; font-size: 0.85rem; color: #94a3b8;">
+                    <strong style="color: #ffffff; display: block; margin-bottom: 8px;">OAuth2 Integration Setup:</strong>
+                    ${(data.setup_instructions || []).map(step => `<div style="margin-bottom: 4px;">${esc(step)}</div>`).join('')}
+                </div>
+            </div>
+        `;
+    }
 }
 
 

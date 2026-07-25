@@ -854,7 +854,6 @@ class SEOAnalyzer:
                 
             self.html = self.response.text
             self.soup = BeautifulSoup(self.html, "lxml")
-            self._apply_wcag_seo_hotfixes()
             return True
         except requests.exceptions.SSLError:
             self.error = "SSL certificate error. The site may have an invalid or expired certificate."
