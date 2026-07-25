@@ -117,9 +117,12 @@ document.addEventListener("DOMContentLoaded", () => {
 /* ── UI STATE ── */
 
 function showSection(s) {
-    document.getElementById("hero").style.display = s === "hero" ? "" : "none";
-    document.getElementById("loadingSection").style.display = s === "loading" ? "" : "none";
-    document.getElementById("resultsSection").style.display = s === "results" ? "" : "none";
+    const hero = document.getElementById("hero");
+    const loading = document.getElementById("loadingSection");
+    const results = document.getElementById("resultsSection");
+    if (hero) hero.style.display = (s === "hero") ? "block" : "none";
+    if (loading) loading.style.display = (s === "loading") ? "block" : "none";
+    if (results) results.style.display = (s === "results") ? "block" : "none";
     if (s === "results") window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -2338,43 +2341,50 @@ function switchProTool(toolId) {
     const activeNavBtn = document.getElementById(`pnav-${toolId}`);
     if (activeNavBtn) activeNavBtn.classList.add('active');
 
-    document.getElementById('hero').style.display = 'none';
-    document.getElementById('resultsSection').style.display = 'none';
-    document.getElementById('loadingSection').style.display = 'none';
+    const sidebar = document.getElementById('appSidebar');
+    if (sidebar) sidebar.classList.remove('open');
+
+    const hero = document.getElementById('hero');
+    const results = document.getElementById('resultsSection');
+    const loading = document.getElementById('loadingSection');
+
+    if (hero) hero.style.display = 'none';
+    if (results) results.style.display = 'none';
+    if (loading) loading.style.display = 'none';
 
     // Hide extra legacy sections when not on site-audit
     document.querySelectorAll('.compare-section, .gsc-section, .seo-education-section, .history-section, .footer-support-section').forEach(sec => {
-        sec.style.display = (toolId === 'site-audit') ? '' : 'none';
+        sec.style.display = (toolId === 'site-audit') ? 'block' : 'none';
     });
 
     document.querySelectorAll('.pro-tool-section').forEach(sec => sec.style.display = 'none');
 
+    const toolMap = {
+        'dashboard': 'dashboardSection',
+        'keyword-magic': 'keywordMagicSection',
+        'domain-overview': 'domainOverviewSection',
+        'competitor-gap': 'competitorGapSection',
+        'rank-tracker': 'rankTrackerSection',
+        'security-audit': 'securityAuditSection',
+        'serp-simulator': 'serpSimulatorSection',
+        'backlink-suite': 'backlinkSuiteSection',
+        'gsc-performance': 'gscPerformanceSection'
+    };
+
     if (toolId === 'dashboard') {
-        document.getElementById('dashboardSection').style.display = '';
+        const sec = document.getElementById('dashboardSection');
+        if (sec) sec.style.display = 'block';
         renderExecutiveDashboard();
     } else if (toolId === 'site-audit') {
         if (currentReport) {
-            document.getElementById('resultsSection').style.display = '';
+            if (results) results.style.display = 'block';
         } else {
-            document.getElementById('hero').style.display = '';
+            if (hero) hero.style.display = 'block';
         }
-    } else if (toolId === 'keyword-magic') {
-        document.getElementById('keywordMagicSection').style.display = '';
-    } else if (toolId === 'domain-overview') {
-        document.getElementById('domainOverviewSection').style.display = '';
-    } else if (toolId === 'competitor-gap') {
-        document.getElementById('competitorGapSection').style.display = '';
-    } else if (toolId === 'rank-tracker') {
-        document.getElementById('rankTrackerSection').style.display = '';
-    } else if (toolId === 'security-audit') {
-        document.getElementById('securityAuditSection').style.display = '';
-    } else if (toolId === 'serp-simulator') {
-        document.getElementById('serpSimulatorSection').style.display = '';
-        updateSerpPreview();
-    } else if (toolId === 'backlink-suite') {
-        document.getElementById('backlinkSuiteSection').style.display = '';
-    } else if (toolId === 'gsc-performance') {
-        document.getElementById('gscPerformanceSection').style.display = '';
+    } else if (toolMap[toolId]) {
+        const sec = document.getElementById(toolMap[toolId]);
+        if (sec) sec.style.display = 'block';
+        if (toolId === 'serp-simulator') updateSerpPreview();
     }
 }
 
