@@ -3961,7 +3961,6 @@ function downloadDisavowFile(domain, toxicDomains) {
             alert("Failed to generate disavow file.");
         }
     })
-}
     .catch(err => alert("Disavow generation error: " + err.message));
 }
 
