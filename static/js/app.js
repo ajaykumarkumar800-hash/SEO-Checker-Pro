@@ -4021,7 +4021,17 @@ function renderGSCPerformanceResults(data) {
             </tr>
         `).join('');
 
+        const dataSourceLabel = data.data_source || "Live Google Search & Index Analytics";
+
         container.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); padding: 12px 18px; border-radius: 12px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="display: inline-block; width: 8px; height: 8px; background: #38bdf8; border-radius: 50%;"></span>
+                    <span style="font-size: 0.85rem; font-weight: 700; color: #38bdf8;">Data Engine: ${esc(dataSourceLabel)}</span>
+                </div>
+                <span style="font-size: 0.78rem; color: #94a3b8;">Domain: <strong style="color: #fff;">${esc(data.site_url)}</strong></span>
+            </div>
+
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
                 <div style="background: var(--bg-card); border-left: 4px solid #34d399; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
                     <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Clicks</div>
