@@ -2582,7 +2582,10 @@ function renderKeywordResults(data) {
     let phraseRows = (data.phrase_matches || []).map(p => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
             <td style="padding: 12px; font-weight: 600; color: #f8fafc;">${p.keyword}</td>
-            <td style="padding: 12px; text-align: center; color: #818cf8; font-weight: 700;">${p.volume.toLocaleString()}</td>
+            <td style="padding: 12px; text-align: center;">
+                <span style="color: ${p.popularity >= 80 ? '#4ade80' : (p.popularity >= 50 ? '#fbbf24' : '#94a3b8')}; font-weight: 700;">${p.popularity}</span>
+                <span style="font-size:0.7rem; color:#64748b; display:block;">${p.popularity_label || ''}</span>
+            </td>
             <td style="padding: 12px; text-align: center;">
                 <span class="badge" style="background: ${p.kd < 30 ? 'rgba(34,197,94,0.2)' : (p.kd < 60 ? 'rgba(234,179,8,0.2)' : 'rgba(239,68,68,0.2)')}; color: ${p.kd < 30 ? '#4ade80' : (p.kd < 60 ? '#fde047' : '#f87171')};">
                     ${p.kd}% (${p.kd_status})
@@ -2591,23 +2594,30 @@ function renderKeywordResults(data) {
             <td style="padding: 12px; text-align: center;">
                 <span class="badge" style="background: rgba(148,163,184,0.15); color: #cbd5e1;">${p.intent}</span>
             </td>
-            <td style="padding: 12px; text-align: right; color: #34d399; font-weight: 600;">${p.cpc}</td>
         </tr>
     `).join('');
 
     let questionRows = (data.questions || []).map(q => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
             <td style="padding: 10px; font-weight: 500; color: #e2e8f0;">${q.question}</td>
-            <td style="padding: 10px; text-align: center; color: #818cf8;">${q.volume.toLocaleString()}</td>
+            <td style="padding: 10px; text-align: center;">
+                <span style="color: ${q.popularity >= 80 ? '#4ade80' : '#94a3b8'}; font-weight: 700;">${q.popularity || '--'}</span>
+            </td>
             <td style="padding: 10px; text-align: right; color: #fde047;">${q.kd}%</td>
         </tr>
     `).join('');
 
     container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 10px 16px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); border-radius: 10px;">
+            <span style="width:8px; height:8px; background:#34d399; border-radius:50%; display:inline-block;"></span>
+            <span style="font-size:0.82rem; color:#38bdf8; font-weight:700;">Data Source: ${esc(data.data_source || 'Google Autocomplete + SERP Analysis')}</span>
+        </div>
+
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px;">
             <div class="meta-card" style="text-align: center;">
-                <div class="meta-label">Search Volume</div>
-                <div class="meta-value" style="color:#818cf8; font-size:1.8rem;">${m.volume.toLocaleString()}</div>
+                <div class="meta-label">Popularity Score</div>
+                <div class="meta-value" style="color:#818cf8; font-size:1.8rem;">${m.popularity || '--'}</div>
+                <span style="font-size:0.72rem; color:#64748b;">Google Autocomplete Rank</span>
             </div>
             <div class="meta-card" style="text-align: center;">
                 <div class="meta-label">Keyword Difficulty</div>
@@ -2619,22 +2629,22 @@ function renderKeywordResults(data) {
                 <div class="meta-value" style="color:#38bdf8; font-size:1.2rem;">${m.intent}</div>
             </div>
             <div class="meta-card" style="text-align: center;">
-                <div class="meta-label">Est. CPC</div>
-                <div class="meta-value" style="color:#34d399; font-size:1.8rem;">${m.cpc}</div>
+                <div class="meta-label">SERP Results</div>
+                <div class="meta-value" style="color:#34d399; font-size:1.8rem;">${m.serp_results_found || 0}</div>
+                <span style="font-size:0.72rem; color:#64748b;">Live Competition Count</span>
             </div>
         </div>
 
         <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px; margin-bottom: 30px;">
-            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Phrase Match Variations</h3>
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Phrase Match Variations <span style="font-size:0.75rem; color:#34d399; font-weight:600;">🟢 Live Google Autocomplete</span></h3>
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
                     <thead>
                         <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
                             <th style="padding: 10px;">Keyword</th>
-                            <th style="padding: 10px; text-align: center;">Volume</th>
+                            <th style="padding: 10px; text-align: center;">Popularity</th>
                             <th style="padding: 10px; text-align: center;">KD%</th>
                             <th style="padding: 10px; text-align: center;">Intent</th>
-                            <th style="padding: 10px; text-align: right;">CPC</th>
                         </tr>
                     </thead>
                     <tbody>${phraseRows}</tbody>
@@ -2643,13 +2653,13 @@ function renderKeywordResults(data) {
         </div>
 
         <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
-            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Related Questions</h3>
+            <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Related Questions <span style="font-size:0.75rem; color:#34d399; font-weight:600;">🟢 Live</span></h3>
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
                     <thead>
                         <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
                             <th style="padding: 10px;">Question</th>
-                            <th style="padding: 10px; text-align: center;">Volume</th>
+                            <th style="padding: 10px; text-align: center;">Popularity</th>
                             <th style="padding: 10px; text-align: right;">KD%</th>
                         </tr>
                     </thead>
@@ -2657,6 +2667,8 @@ function renderKeywordResults(data) {
                 </table>
             </div>
         </div>
+
+        ${data.notice ? `<div style="margin-top: 16px; padding: 12px 16px; background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 10px; font-size: 0.8rem; color: #fbbf24;">ℹ️ ${esc(data.notice)}</div>` : ''}
     `;
 }
 
@@ -2694,76 +2706,72 @@ function renderDomainResults(data) {
     
     let kwRows = (data.top_keywords || []).map(k => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-            <td style="padding: 10px; font-weight: 600; color: #f8fafc;">${k.keyword}</td>
+            <td style="padding: 10px; font-weight: 600; color: #f8fafc;">${esc(k.keyword)}</td>
             <td style="padding: 10px; text-align: center; color: #34d399; font-weight: 700;">#${k.position}</td>
-            <td style="padding: 10px; text-align: center; color: #818cf8;">${k.volume.toLocaleString()}</td>
-            <td style="padding: 10px; text-align: right; color: #cbd5e1;">${k.traffic_share}</td>
-        </tr>
-    `).join('');
-
-    let compRows = (data.competitors || []).map(c => `
-        <tr style="border-bottom: 1px solid rgba(255,255,255,0.06);">
-            <td style="padding: 10px; font-weight: 600; color: #e2e8f0;">${c.domain}</td>
-            <td style="padding: 10px; text-align: center; color: #fde047; font-weight: 700;">${c.overlap_pct}</td>
-            <td style="padding: 10px; text-align: right; color: #818cf8;">${c.common_keywords.toLocaleString()} kw</td>
+            <td style="padding: 10px; text-align: right;">
+                <span style="color: ${k.popularity >= 80 ? '#4ade80' : (k.popularity >= 50 ? '#fbbf24' : '#94a3b8')}; font-weight: 700;">${k.popularity}</span>
+            </td>
         </tr>
     `).join('');
 
     container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 10px 16px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); border-radius: 10px;">
+            <span style="width:8px; height:8px; background:#34d399; border-radius:50%; display:inline-block;"></span>
+            <span style="font-size:0.82rem; color:#38bdf8; font-weight:700;">Data Source: ${esc(data.data_source || 'Live HTTP Probe')}</span>
+        </div>
+
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 30px;">
             <div class="meta-card" style="text-align: center;">
-                <div class="meta-label">Domain Authority</div>
-                <div class="meta-value" style="color:#38bdf8; font-size:2rem;">${data.authority_score}<span style="font-size:1rem;">/100</span></div>
+                <div class="meta-label">Live Status</div>
+                <div class="meta-value" style="color:${data.is_live ? '#34d399' : '#f87171'}; font-size:1.6rem;">${data.is_live ? '🟢 Online' : '🔴 Offline'}</div>
+                <span style="font-size:0.8rem; color:#94a3b8;">HTTP ${data.status_code || 'N/A'}</span>
             </div>
             <div class="meta-card" style="text-align: center;">
-                <div class="meta-label">Est. Monthly Traffic</div>
-                <div class="meta-value" style="color:#34d399; font-size:1.8rem;">${data.organic_traffic.toLocaleString()}</div>
+                <div class="meta-label">Response Time</div>
+                <div class="meta-value" style="color:#38bdf8; font-size:1.8rem;">${data.response_time || 'N/A'}</div>
+                <span style="font-size:0.72rem; color:#64748b;">Live Probe Speed</span>
             </div>
             <div class="meta-card" style="text-align: center;">
-                <div class="meta-label">Organic Keywords</div>
-                <div class="meta-value" style="color:#818cf8; font-size:1.8rem;">${data.organic_keywords.toLocaleString()}</div>
+                <div class="meta-label">HTTPS Secure</div>
+                <div class="meta-value" style="color:${data.is_https ? '#34d399' : '#f87171'}; font-size:1.6rem;">${data.is_https ? '🔒 Yes' : '⚠️ No'}</div>
             </div>
             <div class="meta-card" style="text-align: center;">
-                <div class="meta-label">Backlinks</div>
-                <div class="meta-value" style="color:#fde047; font-size:1.8rem;">${data.backlinks_count.toLocaleString()}</div>
-                <span style="font-size:0.8rem; color:#94a3b8;">from ${data.referring_domains.toLocaleString()} domains</span>
+                <div class="meta-label">Indexed Pages</div>
+                <div class="meta-value" style="color:#818cf8; font-size:1.8rem;">${data.indexed_pages || 0}</div>
+                <span style="font-size:0.72rem; color:#64748b;">DuckDuckGo site: Index</span>
             </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 20px;">
             <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Top Organic Ranking Keywords</h3>
+                <div style="margin-bottom: 16px;">
+                    <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">Page Title</div>
+                    <div style="font-size: 1.1rem; color: #ffffff; font-weight: 700; margin-top: 4px;">${esc(data.page_title || 'N/A')}</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.85rem; color: #94a3b8; font-weight: 600;">Server Technology</div>
+                    <div style="font-size: 1rem; color: #cbd5e1; margin-top: 4px;">${esc(data.server_tech || 'N/A')}</div>
+                </div>
+            </div>
+
+            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
+                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Brand Keywords <span style="font-size:0.75rem; color:#34d399; font-weight:600;">🟢 Live Google Autocomplete</span></h3>
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
                         <thead>
                             <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
                                 <th style="padding: 8px;">Keyword</th>
-                                <th style="padding: 8px; text-align: center;">Pos</th>
-                                <th style="padding: 8px; text-align: center;">Volume</th>
-                                <th style="padding: 8px; text-align: right;">Traffic %</th>
+                                <th style="padding: 8px; text-align: center;">Rank</th>
+                                <th style="padding: 8px; text-align: right;">Popularity</th>
                             </tr>
                         </thead>
-                        <tbody>${kwRows}</tbody>
-                    </table>
-                </div>
-            </div>
-
-            <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
-                <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; color: #fff;">Competitor Keyword Overlap</h3>
-                <div style="overflow-x: auto;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
-                        <thead>
-                            <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
-                                <th style="padding: 8px;">Competitor</th>
-                                <th style="padding: 8px; text-align: center;">Overlap</th>
-                                <th style="padding: 8px; text-align: right;">Common Keywords</th>
-                            </tr>
-                        </thead>
-                        <tbody>${compRows}</tbody>
+                        <tbody>${kwRows || '<tr><td colspan="3" style="padding:12px; color:#64748b; text-align:center;">No brand keywords found in Google Autocomplete</td></tr>'}</tbody>
                     </table>
                 </div>
             </div>
         </div>
+
+        ${data.notice ? `<div style="padding: 12px 16px; background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 10px; font-size: 0.8rem; color: #fbbf24;">ℹ️ ${esc(data.notice)}</div>` : ''}
     `;
 }
 
@@ -3350,26 +3358,30 @@ function renderRankResults(data) {
     const container = document.getElementById("rtResults");
     const rows = data.rankings.map(r => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.06); color: #cbd5e1;">
-            <td style="padding: 14px; font-weight: 600; color: #fff;">${r.keyword}</td>
-            <td style="padding: 14px; text-align: center;"><span style="background: rgba(56,189,248,0.15); color: #38bdf8; padding: 4px 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 800;">#${r.position}</span></td>
-            <td style="padding: 14px; text-align: center; color: ${r.position_change.startsWith('+') ? '#34d399' : (r.position_change.startsWith('-') ? '#ef4444' : '#94a3b8')}; font-weight: 700;">${r.position_change}</td>
-            <td style="padding: 14px; text-align: center;"><span style="background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; color: #94a3b8;">${r.status}</span></td>
-            <td style="padding: 14px; text-align: right; font-weight: 600;">${r.volume.toLocaleString()} /mo</td>
+            <td style="padding: 14px; font-weight: 600; color: #fff;">${esc(r.keyword)}</td>
+            <td style="padding: 14px; text-align: center;">
+                ${r.position !== null ? `<span style="background: rgba(56,189,248,0.15); color: #38bdf8; padding: 4px 12px; border-radius: 8px; font-size: 1.1rem; font-weight: 800;">#${r.position}</span>` : `<span style="color: #64748b; font-size:0.85rem;">Not Found</span>`}
+            </td>
+            <td style="padding: 14px; text-align: center;"><span style="background: rgba(255,255,255,0.08); padding: 3px 8px; border-radius: 4px; font-size: 0.8rem; color: #94a3b8;">${esc(r.status)}</span></td>
+            <td style="padding: 14px; text-align: center;">${r.is_realtime ? '<span style="color:#34d399; font-weight:700;">🟢 Live</span>' : '<span style="color:#64748b;">—</span>'}</td>
         </tr>
     `).join("");
 
     container.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding: 10px 16px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); border-radius: 10px;">
+            <span style="width:8px; height:8px; background:#34d399; border-radius:50%; display:inline-block;"></span>
+            <span style="font-size:0.82rem; color:#38bdf8; font-weight:700;">Data Source: Live DuckDuckGo SERP Probe (100% Real-Time)</span>
+        </div>
         <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
-            <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 20px;">Live Rank Positions for ${data.domain}</h3>
+            <h3 style="font-size: 1.2rem; color: #fff; margin-bottom: 20px;">Live Rank Positions for ${esc(data.domain)}</h3>
             <div style="overflow-x: auto;">
                 <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
                     <thead>
                         <tr style="border-bottom: 2px solid rgba(255,255,255,0.1); color: #94a3b8;">
                             <th style="padding: 12px;">Target Keyword</th>
-                            <th style="padding: 12px; text-align: center;">Google Position</th>
-                            <th style="padding: 12px; text-align: center;">Change</th>
+                            <th style="padding: 12px; text-align: center;">SERP Position</th>
                             <th style="padding: 12px; text-align: center;">Status</th>
-                            <th style="padding: 12px; text-align: right;">Search Volume</th>
+                            <th style="padding: 12px; text-align: center;">Data</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
@@ -4013,18 +4025,82 @@ function renderGSCPerformanceResults(data) {
     const container = document.getElementById("gscPerfResults");
     if (!container) return;
 
-    if (data.connected && data.top_queries) {
-        let rows = data.top_queries.map(q => `
-            <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
-                <td style="padding: 12px; font-weight: 700; color: #ffffff;">${esc(q.query)}</td>
-                <td style="padding: 12px; text-align: center; color: #34d399; font-weight: 800;">${q.clicks.toLocaleString()}</td>
-                <td style="padding: 12px; text-align: center; color: #38bdf8; font-weight: 800;">${q.impressions.toLocaleString()}</td>
-                <td style="padding: 12px; text-align: center; color: #fbbf24; font-weight: 700;">${esc(q.ctr)}</td>
-                <td style="padding: 12px; text-align: right; color: #a5b4fc; font-weight: 800;">#${q.position}</td>
-            </tr>
-        `).join('');
+    const isOfficialGsc = data.data_source && data.data_source.includes("Official Google Search Console");
 
-        const dataSourceLabel = data.data_source || "Live Google Search & Index Analytics";
+    if (data.connected && data.top_queries) {
+        let rows = data.top_queries.map(q => {
+            if (isOfficialGsc) {
+                return `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
+                        <td style="padding: 12px; font-weight: 700; color: #ffffff;">${esc(q.query)}</td>
+                        <td style="padding: 12px; text-align: center; color: #34d399; font-weight: 800;">${(q.clicks || 0).toLocaleString()}</td>
+                        <td style="padding: 12px; text-align: center; color: #38bdf8; font-weight: 800;">${(q.impressions || 0).toLocaleString()}</td>
+                        <td style="padding: 12px; text-align: center; color: #fbbf24; font-weight: 700;">${esc(q.ctr || '0%')}</td>
+                        <td style="padding: 12px; text-align: right; color: #a5b4fc; font-weight: 800;">#${q.position || '--'}</td>
+                    </tr>
+                `;
+            } else {
+                return `
+                    <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: #cbd5e1;">
+                        <td style="padding: 12px; font-weight: 700; color: #ffffff;">${esc(q.query)}</td>
+                        <td style="padding: 12px; text-align: center;">
+                            ${q.found_in_serp ? `<span style="background: rgba(52,211,153,0.15); color: #34d399; padding: 4px 12px; border-radius: 8px; font-weight: 800;">#${q.position}</span>` : `<span style="color: #64748b; font-size: 0.85rem;">Not in Top 30</span>`}
+                        </td>
+                        <td style="padding: 12px; text-align: center;">
+                            <span class="badge" style="background: ${q.found_in_serp ? 'rgba(52,211,153,0.15)' : 'rgba(148,163,184,0.1)'}; color: ${q.found_in_serp ? '#34d399' : '#94a3b8'};">
+                                ${q.found_in_serp ? 'Found in SERP' : 'Indexed Query'}
+                            </span>
+                        </td>
+                        <td style="padding: 12px; text-align: right; color: #38bdf8; font-weight: 700;">🟢 Live Probe</td>
+                    </tr>
+                `;
+            }
+        }).join('');
+
+        const dataSourceLabel = data.data_source || "Live Search Rank Probe Analytics";
+
+        let headerCardsHtml = '';
+        if (isOfficialGsc) {
+            headerCardsHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
+                    <div style="background: var(--bg-card); border-left: 4px solid #34d399; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Clicks</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #34d399; margin: 4px 0;">${(data.total_clicks || 0).toLocaleString()}</div>
+                        <div style="font-size: 0.78rem; color: #6ee7b7;">Official GSC API</div>
+                    </div>
+                    <div style="background: var(--bg-card); border-left: 4px solid #38bdf8; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Impressions</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #38bdf8; margin: 4px 0;">${(data.total_impressions || 0).toLocaleString()}</div>
+                        <div style="font-size: 0.78rem; color: #7dd3fc;">Official GSC API</div>
+                    </div>
+                    <div style="background: var(--bg-card); border-left: 4px solid #fbbf24; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average CTR</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #fbbf24; margin: 4px 0;">${data.avg_ctr || '0%'}</div>
+                        <div style="font-size: 0.78rem; color: #fde047;">Click-Through Rate</div>
+                    </div>
+                    <div style="background: var(--bg-card); border-left: 4px solid #a5b4fc; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average Position</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #a5b4fc; margin: 4px 0;">#${data.avg_position || '--'}</div>
+                        <div style="font-size: 0.78rem; color: #c7d2fe;">SERP Rank</div>
+                    </div>
+                </div>
+            `;
+        } else {
+            headerCardsHtml = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
+                    <div style="background: var(--bg-card); border-left: 4px solid #34d399; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Queries Found in SERP</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #34d399; margin: 4px 0;">${data.queries_found_in_serp || 0} <span style="font-size:1.1rem; color:#94a3b8;">/ ${data.total_queries_checked || 0}</span></div>
+                        <div style="font-size: 0.78rem; color: #6ee7b7;">Live Search Index</div>
+                    </div>
+                    <div style="background: var(--bg-card); border-left: 4px solid #a5b4fc; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
+                        <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average SERP Position</div>
+                        <div style="font-size: 2.2rem; font-weight: 800; color: #a5b4fc; margin: 4px 0;">${data.avg_position ? '#' + data.avg_position : '--'}</div>
+                        <div style="font-size: 0.78rem; color: #c7d2fe;">Target Domain Rank</div>
+                    </div>
+                </div>
+            `;
+        }
 
         container.innerHTML = `
             <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; background: rgba(56,189,248,0.08); border: 1px solid rgba(56,189,248,0.2); padding: 12px 18px; border-radius: 12px;">
@@ -4034,34 +4110,10 @@ function renderGSCPerformanceResults(data) {
                 </div>
                 <div style="display: flex; align-items: center; gap: 12px;">
                     <span style="font-size: 0.78rem; color: #94a3b8;">Domain: <strong style="color: #fff;">${esc(data.site_url)}</strong></span>
-                    <button onclick="alert('Google Search Console OAuth Setup:\\n\\n1. To view 100% exact GSC clicks & impressions direct from Google API, connect your GSC OAuth2 token.\\n2. Current view shows Live Google Search & Indexation Analytics based on real Google Autocomplete search data.')" style="background: rgba(99,102,241,0.2); border: 1px solid rgba(99,102,241,0.4); color: #818cf8; font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 6px; cursor: pointer;">
-                        ⚙️ Sync Official GSC OAuth
-                    </button>
                 </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 25px;">
-                <div style="background: var(--bg-card); border-left: 4px solid #34d399; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
-                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Clicks</div>
-                    <div style="font-size: 2.2rem; font-weight: 800; color: #34d399; margin: 4px 0;">${data.total_clicks.toLocaleString()}</div>
-                    <div style="font-size: 0.78rem; color: #6ee7b7;">Last 30 Days</div>
-                </div>
-                <div style="background: var(--bg-card); border-left: 4px solid #38bdf8; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
-                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Total Impressions</div>
-                    <div style="font-size: 2.2rem; font-weight: 800; color: #38bdf8; margin: 4px 0;">${data.total_impressions.toLocaleString()}</div>
-                    <div style="font-size: 0.78rem; color: #7dd3fc;">Search Visibility</div>
-                </div>
-                <div style="background: var(--bg-card); border-left: 4px solid #fbbf24; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
-                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average CTR</div>
-                    <div style="font-size: 2.2rem; font-weight: 800; color: #fbbf24; margin: 4px 0;">${data.avg_ctr}</div>
-                    <div style="font-size: 0.78rem; color: #fde047;">Click-Through Rate</div>
-                </div>
-                <div style="background: var(--bg-card); border-left: 4px solid #a5b4fc; border: 1px solid rgba(255,255,255,0.1); border-left-width: 4px; border-radius: 14px; padding: 18px; text-align: center;">
-                    <div style="font-size: 0.78rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Average Position</div>
-                    <div style="font-size: 2.2rem; font-weight: 800; color: #a5b4fc; margin: 4px 0;">#${data.avg_position}</div>
-                    <div style="font-size: 0.78rem; color: #c7d2fe;">SERP Rank</div>
-                </div>
-            </div>
+            ${headerCardsHtml}
 
             <div style="background: var(--bg-card); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 24px;">
                 <h3 style="font-size: 1.2rem; font-weight: 700; color: #ffffff; margin-bottom: 16px;">Top Organic Search Queries</h3>
@@ -4070,16 +4122,24 @@ function renderGSCPerformanceResults(data) {
                         <thead>
                             <tr style="border-bottom: 2px solid rgba(255,255,255,0.12); color: #94a3b8;">
                                 <th style="padding: 10px;">Search Query</th>
-                                <th style="padding: 10px; text-align: center;">Clicks</th>
-                                <th style="padding: 10px; text-align: center;">Impressions</th>
-                                <th style="padding: 10px; text-align: center;">CTR</th>
-                                <th style="padding: 10px; text-align: right;">Avg Position</th>
+                                ${isOfficialGsc ? `
+                                    <th style="padding: 10px; text-align: center;">Clicks</th>
+                                    <th style="padding: 10px; text-align: center;">Impressions</th>
+                                    <th style="padding: 10px; text-align: center;">CTR</th>
+                                    <th style="padding: 10px; text-align: right;">Avg Position</th>
+                                ` : `
+                                    <th style="padding: 10px; text-align: center;">SERP Position</th>
+                                    <th style="padding: 10px; text-align: center;">Status</th>
+                                    <th style="padding: 10px; text-align: right;">Data Source</th>
+                                `}
                             </tr>
                         </thead>
                         <tbody>${rows}</tbody>
                     </table>
                 </div>
             </div>
+
+            ${data.notice ? `<div style="margin-top: 16px; padding: 12px 16px; background: rgba(234,179,8,0.08); border: 1px solid rgba(234,179,8,0.2); border-radius: 10px; font-size: 0.8rem; color: #fbbf24;">ℹ️ ${esc(data.notice)}</div>` : ''}
         `;
     } else {
         container.innerHTML = `
@@ -4091,10 +4151,6 @@ function renderGSCPerformanceResults(data) {
                 <p style="color: #cbd5e1; font-size: 0.92rem; max-width: 540px; margin: 0 auto 20px;">
                     ${esc(data.message || 'Stream live 100% real-time clicks, impressions, CTR, and search positions directly from your Google Search Console account.')}
                 </p>
-                <div style="background: rgba(15,23,42,0.6); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px; text-align: left; max-width: 540px; margin: 0 auto 20px; font-size: 0.85rem; color: #94a3b8;">
-                    <strong style="color: #ffffff; display: block; margin-bottom: 8px;">OAuth2 Integration Setup:</strong>
-                    ${(data.setup_instructions || []).map(step => `<div style="margin-bottom: 4px;">${esc(step)}</div>`).join('')}
-                </div>
             </div>
         `;
     }
