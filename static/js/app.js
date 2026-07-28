@@ -90,7 +90,26 @@ document.getElementById("urlInput").addEventListener("keydown", e => {
     if (e.key === "Enter") startAnalysis();
 });
 
+function clearRateLimitOverlay() {
+    const banner = document.getElementById("rateLimitBanner");
+    if (banner) banner.style.display = "none";
+    
+    const lockOverlay = document.getElementById("searchLockOverlay");
+    if (lockOverlay) lockOverlay.remove();
+    
+    const urlInput = document.getElementById("urlInput");
+    const keywordInput = document.getElementById("keywordInput");
+    const categorySelect = document.getElementById("categorySelect");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    
+    if (urlInput) urlInput.disabled = false;
+    if (keywordInput) keywordInput.disabled = false;
+    if (categorySelect) categorySelect.disabled = false;
+    if (analyzeBtn) analyzeBtn.disabled = false;
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+    clearRateLimitOverlay();
     const enterInputs = [
         { id: "keywordInput", fn: () => startAnalysis() },
         { id: "kmInput", fn: () => runKeywordResearch() },
@@ -139,6 +158,7 @@ function setLoading(on) {
 function showError(msg) { const el = document.getElementById("errorMsg"); el.textContent = msg; el.style.display = "block"; }
 function hideError() { document.getElementById("errorMsg").style.display = "none"; }
 function resetScan() {
+    clearRateLimitOverlay();
     currentReport = null; currentTab = "on_page";
     document.getElementById("urlInput").value = "";
     const kw = document.getElementById("keywordInput");
@@ -2439,17 +2459,33 @@ function renderExecutiveDashboard() {
             if (kwEl) kwEl.textContent = (totalKw > 9999 ? (totalKw / 1000).toFixed(1) + "K" : totalKw.toLocaleString());
             if (blEl) blEl.textContent = totalBl > 0 ? totalBl.toLocaleString() : "--";
         } else {
-            if (kwEl) kwEl.textContent = "--";
-            if (blEl) blEl.textContent = "--";
+            if (kwEl) kwEl.textContent = "0";
+            if (blEl) blEl.textContent = "0";
+            if (avgEl) avgEl.textContent = "0%";
+            if (countEl) countEl.textContent = "0";
         }
 
         if (tbody) {
+            const isDemoActive = uniqueHistory.some(p => p.is_demo);
+            const demoTitleEl = document.getElementById("dashProjectsTitleBadge");
+            if (demoTitleEl) {
+                demoTitleEl.innerHTML = isDemoActive ? `
+                    <span style="background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); font-size: 0.75rem; font-weight: 800; padding: 3px 10px; border-radius: 6px; display: inline-flex; align-items: center; gap: 4px;">
+                        ⚠️ DEMO DATA MODE ACTIVE
+                    </span>
+                    <button onclick="clearDemoData()" style="background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); padding: 3px 8px; border-radius: 6px; cursor: pointer; font-size: 0.72rem; font-weight: 700; margin-left: 8px;">
+                        Clear Demo Data
+                    </button>
+                ` : '';
+            }
+
             if (uniqueHistory.length > 0) {
                 tbody.innerHTML = uniqueHistory.map(p => {
                     const safeUrl = (p.url || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                    const demoBadge = p.is_demo ? `<span style="font-size: 0.68rem; padding: 2px 6px; border-radius: 4px; background: rgba(245,158,11,0.2); color: #fbbf24; border: 1px solid rgba(245,158,11,0.35); font-weight: 800; margin-left: 6px;">DEMO DATA</span>` : '';
                     return `
                     <tr style="border-bottom: 1px solid rgba(255,255,255,0.1); color: #f8fafc;">
-                        <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}</td>
+                        <td style="padding: 14px; font-weight: 700; color: #ffffff;">${p.url}${demoBadge}</td>
                         <td style="padding: 14px; text-align: center;"><span style="background: rgba(52,211,153,0.2); color: #34d399; padding: 4px 10px; border-radius: 6px; font-weight: 800;">${p.score}%</span></td>
                         <td style="padding: 14px; text-align: center;"><span style="color: #38bdf8; font-weight: 800;">${p.grade}</span></td>
                         <td style="padding: 14px; text-align: center; color: #cbd5e1; font-weight: 600;">${p.date}</td>
@@ -2466,9 +2502,22 @@ function renderExecutiveDashboard() {
             } else {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="5" style="padding: 28px; text-align: center; color: #cbd5e1;">
-                            <div style="font-size: 1rem; font-weight: 600; color: #cbd5e1; margin-bottom: 6px;">No Recent Audits Found</div>
-                            <div>Analyze a website URL above to populate your executive dashboard projects.</div>
+                        <td colspan="5" style="padding: 36px 20px; text-align: center; color: #cbd5e1;">
+                            <div style="max-width: 520px; margin: 0 auto; background: rgba(15,23,42,0.6); border: 1px solid rgba(99,102,241,0.2); border-radius: 16px; padding: 24px;">
+                                <div style="width: 44px; height: 44px; background: rgba(99,102,241,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px auto;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+                                </div>
+                                <h4 style="font-size: 1.15rem; font-weight: 700; color: #ffffff; margin-bottom: 6px;">Welcome to Your SEO Operations Dashboard</h4>
+                                <p style="font-size: 0.88rem; color: #94a3b8; margin-bottom: 20px; line-height: 1.5;">No active audit projects found yet. Start by running your first live site audit or load sample demo data to see how metrics and tracking work.</p>
+                                <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+                                    <button onclick="switchProTool('site-audit'); document.getElementById('urlInput').focus();" style="background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; box-shadow: 0 4px 14px rgba(99,102,241,0.3);">
+                                        🔍 Run First Site Audit
+                                    </button>
+                                    <button onclick="loadSampleDemoData()" style="background: rgba(56,189,248,0.15); color: #38bdf8; border: 1px solid rgba(56,189,248,0.3); padding: 10px 20px; border-radius: 10px; font-size: 0.88rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 6px;">
+                                        ✨ Load Sample Demo Data
+                                    </button>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -2476,6 +2525,50 @@ function renderExecutiveDashboard() {
         }
         loadHistoricalScoreGraph(uniqueHistory.length > 0 ? uniqueHistory[0].url : null);
     }
+
+function loadSampleDemoData() {
+    const demoItems = [
+        {
+            url: "https://seocheckerpro.com",
+            score: 88,
+            grade: "A",
+            date: new Date().toLocaleDateString(),
+            keywords_tracked: 1250,
+            backlinks_count: 340,
+            is_demo: true
+        },
+        {
+            url: "https://myshopdemo.com",
+            score: 74,
+            grade: "B",
+            date: new Date(Date.now() - 86400000 * 2).toLocaleDateString(),
+            keywords_tracked: 620,
+            backlinks_count: 180,
+            is_demo: true
+        }
+    ];
+    let history = [];
+    try {
+        history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+    } catch(e) {}
+    demoItems.forEach(item => {
+        if (!history.some(h => (h.url || '').toLowerCase() === item.url.toLowerCase())) {
+            history.unshift(item);
+        }
+    });
+    localStorage.setItem("seo_scan_history", JSON.stringify(history));
+    renderExecutiveDashboard();
+}
+
+function clearDemoData() {
+    let history = [];
+    try {
+        history = JSON.parse(localStorage.getItem("seo_scan_history") || "[]");
+    } catch(e) {}
+    history = history.filter(h => !h.is_demo);
+    localStorage.setItem("seo_scan_history", JSON.stringify(history));
+    renderExecutiveDashboard();
+}
 
     if (!user) {
         let localHistory = [];

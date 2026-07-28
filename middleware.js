@@ -14,8 +14,17 @@ export async function middleware(request) {
                    request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
                    '127.0.0.1';
 
-        const key = `ratelimit:${ip}`;
-        const limit = 2; // Maximum 2 scans per 24 hours
+        // Shared network resolution: Extract per-session cookie or x-client-id header
+        let clientId = request.cookies.get('seo_client_id')?.value || request.headers.get('x-client-id');
+        let newCookieToSet = null;
+
+        if (!clientId) {
+            clientId = 'c_' + Math.random().toString(36).substring(2, 11) + '_' + Date.now();
+            newCookieToSet = clientId;
+        }
+
+        const key = `ratelimit:${ip}:${clientId}`;
+        const limit = 3; // 3 scans per 24 hours per session/IP combo
         
         try {
             // Absolute Atomic Transactions (Race Conditions Bypass)
@@ -29,11 +38,10 @@ export async function middleware(request) {
             const retryAfter = ttl > 0 ? ttl : 86400;
 
             if (currentCount > limit) {
-                // Return standard HTTP Status Code 429 and Retry-After header
-                return new NextResponse(
+                const limitResp = new NextResponse(
                     JSON.stringify({
                         success: false,
-                        error: "Your search limit has been reached. Please try again after 24 hours."
+                        error: "Your daily search limit has been reached. Please try again after 24 hours."
                     }),
                     {
                         status: 429,
@@ -46,6 +54,10 @@ export async function middleware(request) {
                         }
                     }
                 );
+                if (newCookieToSet) {
+                    limitResp.cookies.set('seo_client_id', newCookieToSet, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+                }
+                return limitResp;
             }
             
             // Allow request but add headers for information
@@ -53,12 +65,19 @@ export async function middleware(request) {
             response.headers.set('X-RateLimit-Limit', String(limit));
             response.headers.set('X-RateLimit-Remaining', String(Math.max(0, limit - currentCount)));
             response.headers.set('X-RateLimit-Reset', String(Math.floor(Date.now() / 1000) + retryAfter));
+            if (newCookieToSet) {
+                response.cookies.set('seo_client_id', newCookieToSet, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+            }
             return response;
             
         } catch (err) {
             // Log error and allow request as fallback
             console.error("Vercel KV Rate Limit Error:", err);
-            return NextResponse.next();
+            const response = NextResponse.next();
+            if (newCookieToSet) {
+                response.cookies.set('seo_client_id', newCookieToSet, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+            }
+            return response;
         }
     }
     

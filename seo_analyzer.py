@@ -3622,7 +3622,7 @@ class SEOAnalyzer:
                 d = {
                     "performance_score": perf_score,
                     "strategy": strategy,
-                    "data_source": "Live Real-Time DOM Performance Engine",
+                    "data_source": f"Local HTML Audit (Google API Unavailable: {source_reason})",
                     "metrics": {
                         "FCP": {"value": f"{fcp_val}s", "score": fcp_score},
                         "LCP": {"value": f"{lcp_val}s", "score": lcp_score},

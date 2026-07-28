@@ -114,8 +114,8 @@
 
             <!-- Sidebar Footer Status -->
             <div class="sidebar-footer">
-                <span class="badge badge-glow">v3.0 Pro Suite</span>
-                <span style="font-size: 0.75rem; color: #34d399; font-weight: 600;">● Live Engine</span>
+                <span class="badge badge-glow">SEO Audit Suite</span>
+                <span style="font-size: 0.75rem; color: #34d399; font-weight: 600;">● System Online</span>
             </div>
         </aside>
 
@@ -128,7 +128,7 @@
                     Menu
                 </button>
                 <div style="margin-left: auto; display: flex; gap: 12px; align-items: center;">
-                    <span class="badge badge-glow">100% Real-Time Engine Active</span>
+                    <span class="badge badge-glow">Powered by real crawl + Google APIs</span>
                     <button id="topbarAuthBtn" onclick="openAuthModal()" style="background: linear-gradient(135deg, #6366f1, #4f46e5); border: none; border-radius: 8px; padding: 7px 16px; color: #ffffff; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(99,102,241,0.3);">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Login / Sign Up
                     </button>
@@ -194,7 +194,7 @@
                 <div class="hero-feature">
                     <span class="hf-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12" style="display:inline-block; vertical-align:middle; margin-right:2px;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    </span> 100% Real-Time
+                    </span> Live Data Audit
                 </div>
                 <div class="hero-feature">
                     <span class="hf-icon">
@@ -365,7 +365,10 @@
             <!-- Recent Audited Projects Table -->
             <div style="background: #0f172a; border: 1px solid rgba(255,255,255,0.15); border-radius: 16px; padding: 26px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff;">Recent Audit Projects</h3>
+                    <h3 style="font-size: 1.25rem; font-weight: 700; color: #ffffff; display: flex; align-items: center; gap: 10px;">
+                        Recent Audit Projects
+                        <span id="dashProjectsTitleBadge"></span>
+                    </h3>
                     <span style="font-size: 0.85rem; color: #cbd5e1; font-weight: 500;">Stored in Database & Local History</span>
                 </div>
 
@@ -601,7 +604,7 @@
             </div>
 
             <div style="max-width: 680px; margin: 0 auto 30px; display: flex; gap: 10px; align-items: center;">
-                <input type="password" id="gscTokenInput" class="keyword-input" placeholder="Google Search Console OAuth Access Token (Optional for 100% exact API sync)" style="font-size: 0.82rem; padding: 10px 14px;">
+                <input type="password" id="gscTokenInput" class="keyword-input" placeholder="Google Search Console OAuth Access Token (Optional for direct GSC API sync)" style="font-size: 0.82rem; padding: 10px 14px;">
             </div>
 
             <div id="gscPerfResults" style="display: none;">
