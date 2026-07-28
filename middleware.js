@@ -1,14 +1,42 @@
 import { NextResponse } from 'next/server';
-import { kv } from '@vercel/kv';
+import { createClient } from 'redis';
 
-export const runtime = 'edge';
+// Reusable single Redis client instance across requests
+let redisClientSingleton = null;
+
+async function getRedisClient() {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+        throw new Error("REDIS_URL environment variable is missing");
+    }
+
+    if (!redisClientSingleton) {
+        redisClientSingleton = createClient({
+            url: redisUrl,
+            socket: {
+                connectTimeout: 5000,
+                reconnectStrategy: retries => Math.min(retries * 100, 3000)
+            }
+        });
+
+        redisClientSingleton.on('error', (err) => {
+            console.error('[REDIS CLIENT ERROR]', err.message || err);
+        });
+    }
+
+    if (!redisClientSingleton.isOpen) {
+        await redisClientSingleton.connect();
+    }
+
+    return redisClientSingleton;
+}
 
 export async function middleware(request) {
     const url = new URL(request.url);
     
     // Only rate limit the /api/analyze endpoint
     if (url.pathname === '/api/analyze') {
-        // Bulletproof IP Extraction Logic
+        // IP Extraction Logic
         const ip = request.ip || 
                    request.headers.get('x-real-ip') || 
                    request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
@@ -27,13 +55,15 @@ export async function middleware(request) {
         const limit = 3; // 3 scans per 24 hours per session/IP combo
         
         try {
-            // Attempt Vercel KV Atomic Rate Limiting
-            const currentCount = await kv.incr(key);
+            // Attempt Redis Rate Limiting using process.env.REDIS_URL
+            const redis = await getRedisClient();
+            const currentCount = await redis.incr(key);
+            
             if (currentCount === 1) {
-                await kv.expire(key, 86400); // Expiry only on first request (24 Hours)
+                await redis.expire(key, 86400); // 24 Hours rolling window
             }
             
-            const ttl = await kv.ttl(key);
+            const ttl = await redis.ttl(key);
             const retryAfter = ttl > 0 ? ttl : 86400;
 
             if (currentCount > limit) {
@@ -69,8 +99,8 @@ export async function middleware(request) {
             return response;
             
         } catch (err) {
-            // Fallback Cookie Rate Limiter when Vercel KV is not configured/unlinked
-            console.warn("Vercel KV unavailable, engaging Cookie Rate Limiter Fallback:", err.message);
+            // LOG error clearly in Vercel logs AND fall back to Tier 2 cookie-based limiter
+            console.error("REDIS_RATE_LIMITER_ERROR (Engaging Tier 2 Cookie Fallback):", err.message || err);
 
             const trackerCookie = request.cookies.get('seo_scan_tracker')?.value;
             let scanCount = 0;
@@ -82,7 +112,6 @@ export async function middleware(request) {
                     const parsedCount = parseInt(parts[0], 10);
                     const parsedTime = parseInt(parts[1], 10);
                     if (!isNaN(parsedCount) && !isNaN(parsedTime)) {
-                        // Check if within 24 hour rolling window
                         if (Date.now() - parsedTime < 86400000) {
                             scanCount = parsedCount;
                             firstScanTime = parsedTime;

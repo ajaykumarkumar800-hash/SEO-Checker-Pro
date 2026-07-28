@@ -374,6 +374,25 @@ def index():
     return render_template("index.html")
 
 
+import redis
+
+# Shared Redis Client instance for Flask backend rate-limiting
+REDIS_CLIENT = None
+
+def get_flask_redis():
+    global REDIS_CLIENT
+    if REDIS_CLIENT is not None:
+        return REDIS_CLIENT
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        try:
+            REDIS_CLIENT = redis.from_url(redis_url, socket_timeout=3, decode_responses=True)
+            return REDIS_CLIENT
+        except Exception as e:
+            safe_log(f"[FLASK REDIS ERROR] Connection failed: {e}")
+            return None
+    return None
+
 PYTHON_RATE_LIMIT_CACHE = {}
 
 @app.route("/api/analyze", methods=["POST"])
@@ -381,33 +400,68 @@ def analyze():
     """Run SEO analysis on the provided URL with Instant Database Caching."""
     global client, db, reports_collection, PYTHON_RATE_LIMIT_CACHE
 
-    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
-    client_cookie = request.cookies.get("seo_client_id") or request.cookies.get("seo_scan_tracker") or client_ip
-    rl_key = f"{client_ip}:{client_cookie}"
-
-    now_ts = time.time()
-    if rl_key not in PYTHON_RATE_LIMIT_CACHE:
-        PYTHON_RATE_LIMIT_CACHE[rl_key] = []
-
-    # Prune timestamps older than 24 hours (86400 seconds)
-    PYTHON_RATE_LIMIT_CACHE[rl_key] = [t for t in PYTHON_RATE_LIMIT_CACHE[rl_key] if now_ts - t < 86400]
-
-    if len(PYTHON_RATE_LIMIT_CACHE[rl_key]) >= 3:
-        return jsonify({
-            "success": False,
-            "error": "Your daily search limit has been reached. Please try again after 24 hours."
-        }), 429
-
-    data = request.get_json()
-    if not data or not data.get("url"):
+    data = request.get_json() or {}
+    if not data.get("url"):
         return jsonify({"success": False, "error": "Please provide a URL to analyze."}), 400
 
-    url = data["url"].strip()
+    url = data.get("url", "").strip()
     if not url:
         return jsonify({"success": False, "error": "URL cannot be empty."}), 400
 
-    # Record scan timestamp upon valid request
-    PYTHON_RATE_LIMIT_CACHE[rl_key].append(now_ts)
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+    client_cookie = request.cookies.get("seo_client_id") or request.cookies.get("seo_scan_tracker") or client_ip
+    rl_key = f"ratelimit:{client_ip}:{client_cookie}"
+    limit = 3
+
+    r_client = get_flask_redis()
+    if r_client:
+        try:
+            current_count = r_client.incr(rl_key)
+            if current_count == 1:
+                r_client.expire(rl_key, 86400) # 24 Hours rolling window
+            
+            ttl = r_client.ttl(rl_key)
+            retry_after = ttl if ttl > 0 else 86400
+
+            if current_count > limit:
+                response = jsonify({
+                    "success": False,
+                    "error": "Your daily search limit has been reached. Please try again after 24 hours."
+                })
+                response.status_code = 429
+                response.headers["X-RateLimit-Limit"] = str(limit)
+                response.headers["X-RateLimit-Remaining"] = "0"
+                response.headers["Retry-After"] = str(retry_after)
+                return response
+        except Exception as re:
+            safe_log(f"[FLASK REDIS RATE LIMITER ERROR]: {re}")
+            # Fallback to local memory cache if Redis fails
+            now_ts = time.time()
+            if rl_key not in PYTHON_RATE_LIMIT_CACHE:
+                PYTHON_RATE_LIMIT_CACHE[rl_key] = []
+            PYTHON_RATE_LIMIT_CACHE[rl_key] = [t for t in PYTHON_RATE_LIMIT_CACHE[rl_key] if now_ts - t < 86400]
+            if len(PYTHON_RATE_LIMIT_CACHE[rl_key]) >= limit:
+                response = jsonify({
+                    "success": False,
+                    "error": "Your daily search limit has been reached. Please try again after 24 hours."
+                })
+                response.status_code = 429
+                return response
+            PYTHON_RATE_LIMIT_CACHE[rl_key].append(now_ts)
+    else:
+        # Fallback to local memory cache if REDIS_URL environment variable is not configured
+        now_ts = time.time()
+        if rl_key not in PYTHON_RATE_LIMIT_CACHE:
+            PYTHON_RATE_LIMIT_CACHE[rl_key] = []
+        PYTHON_RATE_LIMIT_CACHE[rl_key] = [t for t in PYTHON_RATE_LIMIT_CACHE[rl_key] if now_ts - t < 86400]
+        if len(PYTHON_RATE_LIMIT_CACHE[rl_key]) >= limit:
+            response = jsonify({
+                "success": False,
+                "error": "Your daily search limit has been reached. Please try again after 24 hours."
+            })
+            response.status_code = 429
+            return response
+        PYTHON_RATE_LIMIT_CACHE[rl_key].append(now_ts)
     keyword = data.get("keyword", "").strip()
     force_refresh = bool(data.get("force_refresh", False))
     raw_cat = data.get("website_category") or data.get("category")
