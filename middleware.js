@@ -27,13 +27,12 @@ export async function middleware(request) {
         const limit = 3; // 3 scans per 24 hours per session/IP combo
         
         try {
-            // Absolute Atomic Transactions (Race Conditions Bypass)
+            // Attempt Vercel KV Atomic Rate Limiting
             const currentCount = await kv.incr(key);
             if (currentCount === 1) {
                 await kv.expire(key, 86400); // Expiry only on first request (24 Hours)
             }
             
-            // Get TTL to calculate Retry-After header
             const ttl = await kv.ttl(key);
             const retryAfter = ttl > 0 ? ttl : 86400;
 
@@ -60,7 +59,6 @@ export async function middleware(request) {
                 return limitResp;
             }
             
-            // Allow request but add headers for information
             const response = NextResponse.next();
             response.headers.set('X-RateLimit-Limit', String(limit));
             response.headers.set('X-RateLimit-Remaining', String(Math.max(0, limit - currentCount)));
@@ -71,12 +69,61 @@ export async function middleware(request) {
             return response;
             
         } catch (err) {
-            // Log error and allow request as fallback
-            console.error("Vercel KV Rate Limit Error:", err);
+            // Fallback Cookie Rate Limiter when Vercel KV is not configured/unlinked
+            console.warn("Vercel KV unavailable, engaging Cookie Rate Limiter Fallback:", err.message);
+
+            const trackerCookie = request.cookies.get('seo_scan_tracker')?.value;
+            let scanCount = 0;
+            let firstScanTime = Date.now();
+
+            if (trackerCookie) {
+                const parts = trackerCookie.split(':');
+                if (parts.length === 2) {
+                    const parsedCount = parseInt(parts[0], 10);
+                    const parsedTime = parseInt(parts[1], 10);
+                    if (!isNaN(parsedCount) && !isNaN(parsedTime)) {
+                        // Check if within 24 hour rolling window
+                        if (Date.now() - parsedTime < 86400000) {
+                            scanCount = parsedCount;
+                            firstScanTime = parsedTime;
+                        }
+                    }
+                }
+            }
+
+            scanCount += 1;
+            const newTrackerValue = `${scanCount}:${firstScanTime}`;
+
+            if (scanCount > limit) {
+                const limitResp = new NextResponse(
+                    JSON.stringify({
+                        success: false,
+                        error: "Your daily search limit has been reached. Please try again after 24 hours."
+                    }),
+                    {
+                        status: 429,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Retry-After': '86400',
+                            'X-RateLimit-Limit': String(limit),
+                            'X-RateLimit-Remaining': '0'
+                        }
+                    }
+                );
+                if (newCookieToSet) {
+                    limitResp.cookies.set('seo_client_id', newCookieToSet, { path: '/', maxAge: 31536000, sameSite: 'lax' });
+                }
+                limitResp.cookies.set('seo_scan_tracker', newTrackerValue, { path: '/', maxAge: 86400, sameSite: 'lax' });
+                return limitResp;
+            }
+
             const response = NextResponse.next();
+            response.headers.set('X-RateLimit-Limit', String(limit));
+            response.headers.set('X-RateLimit-Remaining', String(Math.max(0, limit - scanCount)));
             if (newCookieToSet) {
                 response.cookies.set('seo_client_id', newCookieToSet, { path: '/', maxAge: 31536000, sameSite: 'lax' });
             }
+            response.cookies.set('seo_scan_tracker', newTrackerValue, { path: '/', maxAge: 86400, sameSite: 'lax' });
             return response;
         }
     }

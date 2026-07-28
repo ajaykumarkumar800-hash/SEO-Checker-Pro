@@ -69,7 +69,11 @@ function startAnalysis(forceRefresh = false) {
             clearIntervals();
             setLoading(false);
             showSection("hero");
-            showError(data.error || "Analysis failed.");
+            if (data.error && (data.error.toLowerCase().includes("limit") || data.error.toLowerCase().includes("reached"))) {
+                showRateLimitOverlay();
+            } else {
+                showError(data.error || "Analysis failed.");
+            }
         }
     })
     .catch(err => {

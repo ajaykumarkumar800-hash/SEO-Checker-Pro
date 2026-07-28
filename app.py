@@ -374,16 +374,40 @@ def index():
     return render_template("index.html")
 
 
+PYTHON_RATE_LIMIT_CACHE = {}
+
 @app.route("/api/analyze", methods=["POST"])
 def analyze():
     """Run SEO analysis on the provided URL with Instant Database Caching."""
-    global client, db, reports_collection
+    global client, db, reports_collection, PYTHON_RATE_LIMIT_CACHE
+
+    client_ip = request.headers.get("X-Forwarded-For", request.remote_addr or "127.0.0.1").split(",")[0].strip()
+    client_cookie = request.cookies.get("seo_client_id") or request.cookies.get("seo_scan_tracker") or client_ip
+    rl_key = f"{client_ip}:{client_cookie}"
+
+    now_ts = time.time()
+    if rl_key not in PYTHON_RATE_LIMIT_CACHE:
+        PYTHON_RATE_LIMIT_CACHE[rl_key] = []
+
+    # Prune timestamps older than 24 hours (86400 seconds)
+    PYTHON_RATE_LIMIT_CACHE[rl_key] = [t for t in PYTHON_RATE_LIMIT_CACHE[rl_key] if now_ts - t < 86400]
+
+    if len(PYTHON_RATE_LIMIT_CACHE[rl_key]) >= 3:
+        return jsonify({
+            "success": False,
+            "error": "Your daily search limit has been reached. Please try again after 24 hours."
+        }), 429
 
     data = request.get_json()
     if not data or not data.get("url"):
         return jsonify({"success": False, "error": "Please provide a URL to analyze."}), 400
 
     url = data["url"].strip()
+    if not url:
+        return jsonify({"success": False, "error": "URL cannot be empty."}), 400
+
+    # Record scan timestamp upon valid request
+    PYTHON_RATE_LIMIT_CACHE[rl_key].append(now_ts)
     keyword = data.get("keyword", "").strip()
     force_refresh = bool(data.get("force_refresh", False))
     raw_cat = data.get("website_category") or data.get("category")
