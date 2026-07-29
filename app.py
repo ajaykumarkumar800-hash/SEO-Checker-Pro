@@ -433,8 +433,8 @@ def analyze():
                 response.headers["X-RateLimit-Remaining"] = "0"
                 response.headers["Retry-After"] = str(retry_after)
                 return response
-        except Exception as re:
-            safe_log(f"[FLASK REDIS RATE LIMITER ERROR]: {re}")
+        except Exception as redis_err:
+            safe_log(f"[FLASK REDIS RATE LIMITER ERROR]: {redis_err}")
             # Fallback to local memory cache if Redis fails
             now_ts = time.time()
             if rl_key not in PYTHON_RATE_LIMIT_CACHE:
